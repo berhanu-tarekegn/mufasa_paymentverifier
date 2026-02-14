@@ -251,10 +251,8 @@ The `SmsPatternExtractor` utility handles both extraction and matching.
 | Compose | Enabled |
 | Room Schema Export | Enabled (`app/schemas/`) |
 
-## License
 
-[Add your license here]
-
+MIT License
 ---
 
 Built by [iTech Solution](https://github.com/your-org)
