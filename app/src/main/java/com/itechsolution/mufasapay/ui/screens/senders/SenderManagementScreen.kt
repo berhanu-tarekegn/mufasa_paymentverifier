@@ -270,8 +270,7 @@ private fun ConfigurePatternBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
-    var sampleMessage by remember { mutableStateOf("") }
-    var extractedPattern by remember { mutableStateOf<String?>(null) }
+    var patternText by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
 
     ModalBottomSheet(
@@ -293,7 +292,7 @@ private fun ConfigurePatternBottomSheet(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Paste a sample \"money received\" SMS from $senderId below. The app will extract a pattern to identify similar messages.",
+                text = "Enter a message pattern using placeholders. You can also paste a sample SMS and click 'Auto-Generate' to get a head start.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -301,14 +300,13 @@ private fun ConfigurePatternBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = sampleMessage,
+                value = patternText,
                 onValueChange = {
-                    sampleMessage = it
-                    extractedPattern = null
+                    patternText = it
                     error = null
                 },
-                label = { Text("Sample Message") },
-                placeholder = { Text("Paste a sample SMS here...") },
+                label = { Text("Message Pattern") },
+                placeholder = { Text("e.g., Dear {name}, you have received ETB {amount}...") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
@@ -331,53 +329,43 @@ private fun ConfigurePatternBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (extractedPattern != null) {
+            if (error != null) {
                 Text(
-                    text = "Extracted pattern:",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    text = error!!,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "\"$extractedPattern\"",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        scope.launch {
-                            onPatternSaved(extractedPattern!!)
-                            sheetState.hide()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Save Pattern")
-                }
-            } else {
-                if (error != null) {
-                    Text(
-                        text = error!!,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                OutlinedButton(
-                    onClick = {
-                        val pattern = SmsPatternExtractor.extractPattern(sampleMessage)
-                        if (pattern != null) {
-                            extractedPattern = pattern
-                        } else {
-                            error = "Could not extract a pattern. Make sure the message contains an amount (e.g., 1,500.00)."
-                        }
-                    },
-                    enabled = sampleMessage.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Extract Pattern")
-                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        onPatternSaved(patternText.trim())
+                        sheetState.hide()
+                    }
+                },
+                enabled = patternText.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save Pattern")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = {
+                    val extracted = SmsPatternExtractor.extractPattern(patternText)
+                    if (extracted != null) {
+                        patternText = extracted
+                    } else {
+                        error = "Could not identify an amount in the text to generate a pattern. Please add placeholders like {amount} manually."
+                    }
+                },
+                enabled = patternText.isNotBlank() && !patternText.contains("{"),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Auto-Generate from Sample")
             }
 
             Spacer(modifier = Modifier.height(24.dp))

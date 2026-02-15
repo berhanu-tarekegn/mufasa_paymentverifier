@@ -61,7 +61,7 @@ object SmsPatternExtractor {
         val pattern = message.substring(0, amountMatch.range.first).trim()
 
         // 4. Basic validation to ensure the pattern is useful.
-        if (pattern.length < 5 || pattern.length > 100) {
+        if (pattern.length < 2 || pattern.length > 200) {
             Timber.d("Extracted pattern is too short or too long: '$pattern'")
             return null
         }
