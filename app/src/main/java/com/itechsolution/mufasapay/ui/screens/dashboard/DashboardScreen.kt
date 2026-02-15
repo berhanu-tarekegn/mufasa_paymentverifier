@@ -61,9 +61,6 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
                 title = { Text("MufasaPay Dashboard") }
             )
         },
@@ -71,7 +68,8 @@ fun DashboardScreen(
             Column {
                 FloatingActionButton(
                     onClick = onNavigateToSenders,
-                    containerColor = MaterialTheme.colorScheme.secondary,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(bottom = 8.dp)
                 ) {
                     Icon(Icons.Default.AccountCircle, contentDescription = "Manage Senders")
@@ -79,7 +77,8 @@ fun DashboardScreen(
 
                 FloatingActionButton(
                     onClick = onNavigateToWebhook,
-                    containerColor = MaterialTheme.colorScheme.secondary,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(bottom = 8.dp)
                 ) {
                     Icon(Icons.Default.Build, contentDescription = "Configure Webhook")
@@ -87,7 +86,8 @@ fun DashboardScreen(
 
                 FloatingActionButton(
                     onClick = onNavigateToHistory,
-                    containerColor = MaterialTheme.colorScheme.secondary,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ) {
                     Icon(Icons.Default.List, contentDescription = "SMS History")
                 }
@@ -273,8 +273,9 @@ private fun RecentMessageCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiary.copy(0.2f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
         Column(
@@ -309,7 +310,7 @@ private fun RecentMessageCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = if (message.isForwarded) "✓ Forwarded" else "Not forwarded",
+                text = if (message.isForwarded) "Forwarded" else "Not forwarded",
                 style = MaterialTheme.typography.labelSmall,
                 color = if (message.isForwarded) {
                     MaterialTheme.colorScheme.primary
