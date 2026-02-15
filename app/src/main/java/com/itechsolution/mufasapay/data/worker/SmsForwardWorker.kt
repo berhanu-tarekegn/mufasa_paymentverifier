@@ -98,7 +98,7 @@ class SmsForwardWorker(
 
             // 5. Retry forwarding
             Timber.i("Retrying SMS forwarding (attempt $nextAttempt/${webhookConfig.maxRetries})")
-            val forwardResult = forwardSmsToWebhookUseCase(sms)
+            val forwardResult = forwardSmsToWebhookUseCase(sms, deliveryLogId)
 
             if (forwardResult.isSuccess) {
                 // Success! No need to schedule another retry

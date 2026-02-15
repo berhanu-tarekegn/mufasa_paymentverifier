@@ -308,9 +308,25 @@ private fun ConfigurePatternBottomSheet(
                     error = null
                 },
                 label = { Text("Sample Message") },
-                placeholder = { Text("e.g., You have received ETB 1,500.00 from...") },
+                placeholder = { Text("Paste a sample SMS here...") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Available Placeholders:",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "{name}, {amount}, {account}, {transaction}, {datetime}, {balance}, {ignore}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(16.dp))
