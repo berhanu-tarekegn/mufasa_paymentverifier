@@ -36,16 +36,15 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 return
             }
 
-            // Process each SMS message
-            for (smsMessage in messages) {
-                val sender = smsMessage.displayOriginatingAddress ?: smsMessage.originatingAddress ?: "Unknown"
-                val message = smsMessage.messageBody ?: ""
-                val timestamp = smsMessage.timestampMillis
+            // Combine multipart SMS into one
+            val fullMessage = messages.joinToString("") { it.messageBody }
 
-                Timber.i("SMS received from: $sender, length: ${message.length}")
-
-                // Start foreground service to process SMS
-                startSmsProcessingService(context, sender, message, timestamp)
+            if (fullMessage.isNotEmpty()) {
+                val firstSms = messages[0]
+                val sender = firstSms.displayOriginatingAddress ?: firstSms.originatingAddress ?: "Unknown"
+                val timestamp = firstSms.timestampMillis
+                Timber.i("SMS received from: $sender, length: ${fullMessage.length}")
+                startSmsProcessingService(context, sender, fullMessage, timestamp)
             }
 
             // IMPORTANT: Do NOT call abortBroadcast()
