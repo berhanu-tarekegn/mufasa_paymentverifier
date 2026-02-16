@@ -40,10 +40,13 @@ class GetDeliveryStatsUseCase(
                 Triple(retryingCount, totalSenders, enabledSenders)
             }
         ) { partial, (retryingCount, totalSenders, enabledSenders) ->
+            // forwardedSms comes from smsRepository.getForwardedCountFlow() (unique SMS count)
+            // successCount comes from deliveryRepository.getSuccessCountFlow() (unique log count now)
+            
             DeliveryStats(
                 totalSms = partial.totalSms,
                 forwardedSms = partial.forwardedSms,
-                successfulDeliveries = partial.successCount,
+                successfulDeliveries = partial.forwardedSms, // SMS marked as forwarded is the gold standard for success
                 failedDeliveries = partial.failedCount,
                 pendingDeliveries = partial.pendingCount,
                 retryingDeliveries = retryingCount,

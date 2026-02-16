@@ -33,11 +33,12 @@ fun SmsListItem(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (message.isForwarded) {
-                MaterialTheme.colorScheme.surfaceVariant
+                MaterialTheme.colorScheme.surface
             } else {
                 MaterialTheme.colorScheme.errorContainer
             }
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -82,13 +83,13 @@ fun SmsListItem(
             ) {
                 Text(
                     text = if (message.isForwarded) {
-                        "✓ Forwarded ${message.forwardedAt?.let { "• ${DateTimeUtils.formatRelativeTime(it)}" } ?: ""}"
+                        "Forwarded ${message.forwardedAt?.let { "• ${DateTimeUtils.formatRelativeTime(it)}" } ?: ""}"
                     } else {
                         "Not forwarded"
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = if (message.isForwarded) {
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     } else {
                         MaterialTheme.colorScheme.error
                     }

@@ -38,9 +38,9 @@ class ForwardSmsToWebhookUseCase(
     private val moshi: Moshi
 ) {
 
-    suspend operator fun invoke(sms: SmsMessage): Result<DeliveryLog> = withContext(Dispatchers.IO) {
+    suspend operator fun invoke(sms: SmsMessage, existingLogId: Long? = null): Result<DeliveryLog> = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
-        Timber.d("Starting webhook forwarding for SMS ID: ${sms.id}")
+        Timber.d("Starting webhook forwarding for SMS ID: ${sms.id}${if (existingLogId != null) " (Retry log: $existingLogId)" else ""}")
 
         try {
             // 1. Get webhook configuration
@@ -63,20 +63,24 @@ class ForwardSmsToWebhookUseCase(
             val payload = buildPayload(sms)
             val payloadJson = moshi.adapter(SmsWebhookPayload::class.java).toJson(payload)
 
-            // 4. Create initial delivery log
-            val deliveryLog = DeliveryLog(
-                smsId = sms.id,
-                status = DeliveryStatus.PENDING,
-                attemptNumber = 1,
-                requestPayload = payloadJson,
-                timestamp = System.currentTimeMillis()
-            )
+            // 4. Create or use initial delivery log
+            val logId = if (existingLogId != null) {
+                existingLogId
+            } else {
+                val deliveryLog = DeliveryLog(
+                    smsId = sms.id,
+                    status = DeliveryStatus.PENDING,
+                    attemptNumber = 1,
+                    requestPayload = payloadJson,
+                    timestamp = System.currentTimeMillis()
+                )
 
-            val logIdResult = deliveryRepository.createLog(deliveryLog)
-            if (logIdResult.isError) {
-                return@withContext Result.error("Failed to create delivery log")
+                val logIdResult = deliveryRepository.createLog(deliveryLog)
+                if (logIdResult.isError) {
+                    return@withContext Result.error("Failed to create delivery log")
+                }
+                logIdResult.getOrNull() ?: 0L
             }
-            val logId = logIdResult.getOrNull() ?: 0L
 
             // 5. Make HTTP request
             val response = makeWebhookRequest(config, payload)
@@ -101,20 +105,27 @@ class ForwardSmsToWebhookUseCase(
                 Timber.i("SMS forwarded successfully. ID: ${sms.id}, Duration: ${duration}ms")
 
                 return@withContext Result.success(
-                    deliveryLog.copy(
+                    DeliveryLog(
                         id = logId,
+                        smsId = sms.id,
                         status = DeliveryStatus.SUCCESS,
+                        requestPayload = payloadJson,
                         responseCode = response.code,
                         responseBody = response.body,
-                        duration = duration
+                        duration = duration,
+                        timestamp = System.currentTimeMillis()
                     )
                 )
             } else {
                 // Failure - update delivery log with error
+                // We don't increment attemptNumber here, it's handled by the worker or initial create
+                val currentLog = if (existingLogId != null) deliveryRepository.getLogById(existingLogId).getOrNull() else null
+                val attemptNumber = currentLog?.attemptNumber ?: 1
+
                 deliveryRepository.updateLogStatus(
                     id = logId,
                     status = DeliveryStatus.FAILED,
-                    attemptNumber = 1,
+                    attemptNumber = attemptNumber,
                     errorMessage = response.errorMessage,
                     timestamp = System.currentTimeMillis()
                 )
@@ -122,11 +133,11 @@ class ForwardSmsToWebhookUseCase(
                 Timber.w("SMS forwarding failed. ID: ${sms.id}, Error: ${response.errorMessage}")
 
                 // Schedule retry if enabled
-                if (config.retryEnabled && config.maxRetries > 1) {
+                if (config.retryEnabled && config.maxRetries > 1 && attemptNumber < config.maxRetries) {
                     Timber.d("Scheduling retry for delivery log: $logId")
                     SmsForwardWorker.scheduleRetry(context, logId, config.retryDelayMs)
                 } else {
-                    Timber.d("Retry disabled or max retries is 1, not scheduling retry")
+                    Timber.d("Retry disabled, max retries reached, or max retries is 1")
                 }
 
                 return@withContext Result.error(

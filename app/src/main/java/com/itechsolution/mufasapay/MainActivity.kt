@@ -13,14 +13,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.itechsolution.mufasapay.ui.navigation.NavigationHost
 import com.itechsolution.mufasapay.ui.theme.MufasaPayTheme
-import com.itechsolution.mufasapay.ui.theme.background
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MufasaPayTheme(dynamicColor = false) {
+            MufasaPayTheme {
                 SetSystemBars()
                 NavigationHost()
             }
@@ -33,10 +31,11 @@ class MainActivity : ComponentActivity() {
 fun SetSystemBars() {
     val view = LocalView.current
     val window = (view.context as Activity).window
+    val colorScheme = MaterialTheme.colorScheme
     SideEffect {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.navigationBarColor =background.toArgb()
-        window.statusBarColor =  background.toArgb()
+        window.navigationBarColor = colorScheme.background.toArgb()
+        window.statusBarColor = colorScheme.background.toArgb()
         WindowCompat.getInsetsController(window, view)
             .isAppearanceLightNavigationBars = true
     }

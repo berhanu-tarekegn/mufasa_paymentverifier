@@ -25,7 +25,7 @@ fun StatCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.onTertiary
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(

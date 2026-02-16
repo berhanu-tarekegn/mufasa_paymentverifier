@@ -45,11 +45,12 @@ fun SenderListItem(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (sender.isEnabled) {
-                MaterialTheme.colorScheme.tertiary.copy(0.2f)
+                MaterialTheme.colorScheme.surface
             } else {
-                MaterialTheme.colorScheme.onTertiary
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             }
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier
