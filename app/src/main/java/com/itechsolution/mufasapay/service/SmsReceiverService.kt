@@ -64,7 +64,6 @@ class SmsReceiverService : Service() {
                     showNotification("SMS Forwarded", "Message from $sender forwarded successfully")
                 } else {
                     Timber.w("SMS processing failed: ${result.exceptionOrNull()?.message}")
-                    showNotification("SMS Processing", "Failed to forward message from $sender")
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception in SMS processing service")
