@@ -1,3 +1,14 @@
+import java.util.Properties
+
+// Load secrets from secrets.properties file
+val secretsFile = rootProject.file("secrets.properties")
+val secrets = Properties()
+if (secretsFile.exists()) {
+    secrets.load(secretsFile.inputStream())
+} else {
+    println("secrets.properties file not found. Release builds may fail.")
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,14 +18,12 @@ plugins {
 
 android {
     namespace = "com.itechsolution.mufasapay"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.itechsolution.mufasapay"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -28,11 +37,11 @@ android {
 
     signingConfigs {
         create("release") {
-            // These should be set as environment variables or in a secure gradle.properties
-            storeFile = file(System.getenv("MUFASAPAY_KEYSTORE_PATH") ?: "release-key.jks")
-            storePassword = System.getenv("MUFASAPAY_KEYSTORE_PASSWORD") ?: ""
-            keyAlias = System.getenv("MUFASAPAY_KEY_ALIAS") ?: ""
-            keyPassword = System.getenv("MUFASAPAY_KEY_PASSWORD") ?: ""
+            // Read signing information from secrets.properties
+            storeFile = file(secrets.getProperty("MUFASAPAY_KEYSTORE_PATH") ?: "release-key.jks")
+            storePassword = secrets.getProperty("MUFASAPAY_KEYSTORE_PASSWORD") ?: ""
+            keyAlias = secrets.getProperty("MUFASAPAY_KEY_ALIAS") ?: ""
+            keyPassword = secrets.getProperty("MUFASAPAY_KEY_PASSWORD") ?: ""
         }
     }
 
@@ -57,6 +66,14 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.1"
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
 }
 

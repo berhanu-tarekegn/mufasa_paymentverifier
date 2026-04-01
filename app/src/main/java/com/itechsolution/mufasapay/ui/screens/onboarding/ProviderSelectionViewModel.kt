@@ -2,10 +2,14 @@ package com.itechsolution.mufasapay.ui.screens.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.itechsolution.mufasapay.domain.model.SenderTemplate
+import com.itechsolution.mufasapay.domain.repository.SenderRepository
 import com.itechsolution.mufasapay.domain.usecase.sender.AddSenderUseCase
+import com.itechsolution.mufasapay.util.DateTimeUtils
 import com.itechsolution.mufasapay.ui.state.ProviderItem
 import com.itechsolution.mufasapay.ui.util.EthiopianProviders
 import com.itechsolution.mufasapay.ui.util.PreferencesManager
+import com.itechsolution.mufasapay.ui.util.ProviderTemplateDefaults
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +21,7 @@ import timber.log.Timber
  */
 class ProviderSelectionViewModel(
     private val addSenderUseCase: AddSenderUseCase,
+    private val senderRepository: SenderRepository,
     private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
@@ -65,11 +70,30 @@ class ProviderSelectionViewModel(
 
                 // Add each selected provider as a sender
                 selectedProviders.forEach { provider ->
-                    addSenderUseCase(
+                    val addSenderResult = addSenderUseCase(
                         senderId = provider.senderId,
-                        displayName = provider.displayName,
-                        pattern = null // No pattern restriction for now
+                        displayName = provider.displayName
                     )
+
+                    if (addSenderResult.isError) {
+                        throw addSenderResult.exceptionOrNull() ?: IllegalStateException("Failed to add sender")
+                    }
+
+                    ProviderTemplateDefaults.forSender(provider.senderId).forEach { preset ->
+                        val templateResult = senderRepository.addTemplate(
+                            SenderTemplate(
+                                senderId = provider.senderId,
+                                label = preset.label,
+                                pattern = preset.pattern,
+                                createdAt = DateTimeUtils.getCurrentTimestamp()
+                            )
+                        )
+
+                        if (templateResult.isError) {
+                            throw templateResult.exceptionOrNull()
+                                ?: IllegalStateException("Failed to add template")
+                        }
+                    }
                 }
 
                 // Mark onboarding as complete
@@ -93,9 +117,4 @@ class ProviderSelectionViewModel(
         preferencesManager.setOnboardingComplete()
         _saveComplete.value = true
     }
-
-    /**
-     * Get count of selected providers
-     */
-
 }

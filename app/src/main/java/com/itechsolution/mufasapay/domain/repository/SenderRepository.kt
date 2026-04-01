@@ -1,6 +1,7 @@
 package com.itechsolution.mufasapay.domain.repository
 
 import com.itechsolution.mufasapay.domain.model.Sender
+import com.itechsolution.mufasapay.domain.model.SenderTemplate
 import com.itechsolution.mufasapay.util.Result
 import kotlinx.coroutines.flow.Flow
 
@@ -20,4 +21,11 @@ interface SenderRepository {
     fun getTotalCountFlow(): Flow<Int>
     suspend fun getEnabledCount(): Result<Int>
     fun getEnabledCountFlow(): Flow<Int>
+
+    // Template management
+    fun getTemplatesForSenderFlow(senderId: String): Flow<List<SenderTemplate>>
+    suspend fun getEnabledTemplatesForSender(senderId: String): Result<List<SenderTemplate>>
+    suspend fun addTemplate(template: SenderTemplate): Result<Long>
+    suspend fun updateTemplate(template: SenderTemplate): Result<Unit>
+    suspend fun removeTemplate(templateId: Long): Result<Unit>
 }

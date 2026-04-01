@@ -36,10 +36,13 @@ fun SenderListItem(
     sender: Sender,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
-    onConfigurePattern: () -> Unit,
+    onManageTemplates: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val hasPattern = !sender.pattern.isNullOrBlank()
+    val templateCount = sender.templates.size
+    val enabledTemplateCount = sender.templates.count { it.isEnabled }
+    val hasTemplates = templateCount > 0
+    val hasEnabledTemplates = enabledTemplateCount > 0
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -75,13 +78,23 @@ fun SenderListItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                if (hasPattern) {
+                if (hasTemplates) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Pattern: ${sender.pattern}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .clickable { onManageTemplates() }
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                        Text(
+                            text = "$enabledTemplateCount/$templateCount templates enabled",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
 
                 if (sender.messageCount > 0) {
@@ -93,14 +106,14 @@ fun SenderListItem(
                     )
                 }
 
-                // Warning badge when pattern is not configured
-                if (!hasPattern) {
+                // Warning badge when no templates are configured
+                if (!hasEnabledTemplates) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.errorContainer)
-                            .clickable { onConfigurePattern() }
+                            .clickable { onManageTemplates() }
                             .padding(horizontal = 6.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -112,7 +125,11 @@ fun SenderListItem(
                             modifier = Modifier.height(16.dp)
                         )
                         Text(
-                            text = "No pattern set — tap to add",
+                            text = if (hasTemplates) {
+                                "All templates disabled — tap to manage"
+                            } else {
+                                "No templates set — tap to add"
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )

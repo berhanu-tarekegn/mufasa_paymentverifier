@@ -5,12 +5,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.itechsolution.mufasapay.ui.screens.dashboard.DashboardScreen
-import com.itechsolution.mufasapay.ui.screens.history.SmsHistoryScreen
 import com.itechsolution.mufasapay.ui.screens.onboarding.ProviderSelectionScreen
 import com.itechsolution.mufasapay.ui.screens.permissions.PermissionScreen
-import com.itechsolution.mufasapay.ui.screens.senders.SenderManagementScreen
-import com.itechsolution.mufasapay.ui.screens.webhook.WebhookConfigScreen
 import com.itechsolution.mufasapay.ui.util.PermissionUtils
 import com.itechsolution.mufasapay.ui.util.PreferencesManager
 import org.koin.compose.koinInject
@@ -35,7 +31,7 @@ fun NavGraph(
         preferencesManager.isFirstRun() -> Screen.ProviderSelection.route
 
         // Default: Go to dashboard
-        else -> Screen.Dashboard.route
+        else -> Screen.AppShell.route
     }
 
     NavHost(
@@ -52,7 +48,7 @@ fun NavGraph(
                             popUpTo(Screen.Permissions.route) { inclusive = true }
                         }
                     } else {
-                        navController.navigate(Screen.Dashboard.route) {
+                        navController.navigate(Screen.AppShell.route) {
                             popUpTo(Screen.Permissions.route) { inclusive = true }
                         }
                     }
@@ -64,53 +60,15 @@ fun NavGraph(
         composable(Screen.ProviderSelection.route) {
             ProviderSelectionScreen(
                 onComplete = {
-                    navController.navigate(Screen.Dashboard.route) {
+                    navController.navigate(Screen.AppShell.route) {
                         popUpTo(Screen.ProviderSelection.route) { inclusive = true }
                     }
                 }
             )
         }
 
-        // Dashboard (main screen)
-        composable(Screen.Dashboard.route) {
-            DashboardScreen(
-                onNavigateToSenders = {
-                    navController.navigate(Screen.SenderManagement.route)
-                },
-                onNavigateToWebhook = {
-                    navController.navigate(Screen.WebhookConfig.route)
-                },
-                onNavigateToHistory = {
-                    navController.navigate(Screen.SmsHistory.route)
-                }
-            )
-        }
-
-        // Sender management
-        composable(Screen.SenderManagement.route) {
-            SenderManagementScreen(
-                onNavigateBack = {
-                    navController.navigateUp()
-                }
-            )
-        }
-
-        // Webhook configuration
-        composable(Screen.WebhookConfig.route) {
-            WebhookConfigScreen(
-                onNavigateBack = {
-                    navController.navigateUp()
-                }
-            )
-        }
-
-        // SMS history
-        composable(Screen.SmsHistory.route) {
-            SmsHistoryScreen(
-                onNavigateBack = {
-                    navController.navigateUp()
-                }
-            )
+        composable(Screen.AppShell.route) {
+            AppShellScreen()
         }
     }
 }

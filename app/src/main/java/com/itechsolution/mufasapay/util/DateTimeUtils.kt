@@ -1,6 +1,7 @@
 package com.itechsolution.mufasapay.util
 
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -56,6 +57,32 @@ object DateTimeUtils {
 
     fun getCurrentTimestamp(): Long {
         return System.currentTimeMillis()
+    }
+
+    fun startOfCurrentDay(): Long {
+        return Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+
+    fun startOfNextDay(): Long {
+        return Calendar.getInstance().apply {
+            timeInMillis = startOfCurrentDay()
+            add(Calendar.DAY_OF_YEAR, 1)
+        }.timeInMillis
+    }
+
+    fun startOfCurrentWeek(): Long {
+        return Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+        }.timeInMillis
     }
 
     fun isOlderThan(timestamp: Long, days: Int): Boolean {

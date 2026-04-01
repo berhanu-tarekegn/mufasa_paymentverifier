@@ -1,8 +1,12 @@
 package com.itechsolution.mufasapay.data.repository
 
 import com.itechsolution.mufasapay.data.local.dao.SenderDao
+import com.itechsolution.mufasapay.data.local.dao.SenderTemplateDao
 import com.itechsolution.mufasapay.data.local.entity.SenderEntity
+import com.itechsolution.mufasapay.data.local.entity.SenderTemplateEntity
+import com.itechsolution.mufasapay.data.local.entity.SenderWithTemplates
 import com.itechsolution.mufasapay.domain.model.Sender
+import com.itechsolution.mufasapay.domain.model.SenderTemplate
 import com.itechsolution.mufasapay.domain.repository.SenderRepository
 import com.itechsolution.mufasapay.util.Result
 import kotlinx.coroutines.flow.Flow
@@ -10,7 +14,8 @@ import kotlinx.coroutines.flow.map
 import timber.log.Timber
 
 class SenderRepositoryImpl(
-    private val senderDao: SenderDao
+    private val senderDao: SenderDao,
+    private val senderTemplateDao: SenderTemplateDao
 ) : SenderRepository {
 
     override suspend fun addSender(sender: Sender): Result<Unit> {
@@ -27,6 +32,7 @@ class SenderRepositoryImpl(
         return try {
             val sender = senderDao.getById(senderId)
             if (sender != null) {
+                // Templates are cascade-deleted via foreign key
                 senderDao.delete(sender)
                 Result.success(Unit)
             } else {
@@ -50,8 +56,7 @@ class SenderRepositoryImpl(
 
     override suspend fun getSenderById(senderId: String): Result<Sender?> {
         return try {
-            val entity = senderDao.getById(senderId)
-            Result.success(entity?.toDomain())
+            Result.success(senderDao.getByIdWithTemplates(senderId)?.toDomain())
         } catch (e: Exception) {
             Timber.e(e, "Error getting sender")
             Result.error(e, "Failed to get sender")
@@ -59,15 +64,14 @@ class SenderRepositoryImpl(
     }
 
     override fun getAllSendersFlow(): Flow<List<Sender>> {
-        return senderDao.getAllFlow().map { entities ->
-            entities.map { it.toDomain() }
+        return senderDao.getAllWithTemplatesFlow().map { senders ->
+            senders.map { it.toDomain() }
         }
     }
 
     override suspend fun getAllSenders(): Result<List<Sender>> {
         return try {
-            val entities = senderDao.getAll()
-            Result.success(entities.map { it.toDomain() })
+            Result.success(senderDao.getAllWithTemplates().map { it.toDomain() })
         } catch (e: Exception) {
             Timber.e(e, "Error getting all senders")
             Result.error(e, "Failed to get senders")
@@ -76,8 +80,7 @@ class SenderRepositoryImpl(
 
     override suspend fun getEnabledSenders(): Result<List<Sender>> {
         return try {
-            val entities = senderDao.getEnabled()
-            Result.success(entities.map { it.toDomain() })
+            Result.success(senderDao.getEnabledWithTemplates().map { it.toDomain() })
         } catch (e: Exception) {
             Timber.e(e, "Error getting enabled senders")
             Result.error(e, "Failed to get enabled senders")
@@ -85,8 +88,8 @@ class SenderRepositoryImpl(
     }
 
     override fun getEnabledSendersFlow(): Flow<List<Sender>> {
-        return senderDao.getEnabledFlow().map { entities ->
-            entities.map { it.toDomain() }
+        return senderDao.getEnabledWithTemplatesFlow().map { senders ->
+            senders.map { it.toDomain() }
         }
     }
 
@@ -144,23 +147,95 @@ class SenderRepositoryImpl(
 
     override fun getEnabledCountFlow(): Flow<Int> = senderDao.countEnabledFlow()
 
+    // --- Template management ---
+
+    override fun getTemplatesForSenderFlow(senderId: String): Flow<List<SenderTemplate>> {
+        return senderTemplateDao.getTemplatesForSenderFlow(senderId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun getEnabledTemplatesForSender(senderId: String): Result<List<SenderTemplate>> {
+        return try {
+            val templates = senderTemplateDao.getEnabledTemplatesForSender(senderId)
+            Result.success(templates.map { it.toDomain() })
+        } catch (e: Exception) {
+            Timber.e(e, "Error getting enabled templates for sender: $senderId")
+            Result.error(e, "Failed to get templates")
+        }
+    }
+
+    override suspend fun addTemplate(template: SenderTemplate): Result<Long> {
+        return try {
+            val id = senderTemplateDao.insert(template.toEntity())
+            Timber.d("Added template '${template.label}' for sender: ${template.senderId}")
+            Result.success(id)
+        } catch (e: Exception) {
+            Timber.e(e, "Error adding template")
+            Result.error(e, "Failed to add template")
+        }
+    }
+
+    override suspend fun updateTemplate(template: SenderTemplate): Result<Unit> {
+        return try {
+            senderTemplateDao.update(template.toEntity())
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "Error updating template")
+            Result.error(e, "Failed to update template")
+        }
+    }
+
+    override suspend fun removeTemplate(templateId: Long): Result<Unit> {
+        return try {
+            senderTemplateDao.deleteById(templateId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "Error removing template")
+            Result.error(e, "Failed to remove template")
+        }
+    }
+
+    // --- Mappers ---
+
     private fun Sender.toEntity() = SenderEntity(
         senderId = senderId,
         displayName = displayName,
-        pattern = pattern,
         isEnabled = isEnabled,
         addedAt = addedAt,
         lastMessageAt = lastMessageAt,
         messageCount = messageCount
     )
 
-    private fun SenderEntity.toDomain() = Sender(
+    private fun SenderEntity.toDomain(templates: List<SenderTemplate> = emptyList()) = Sender(
         senderId = senderId,
         displayName = displayName,
-        pattern = pattern,
         isEnabled = isEnabled,
         addedAt = addedAt,
         lastMessageAt = lastMessageAt,
-        messageCount = messageCount
+        messageCount = messageCount,
+        templates = templates
+    )
+
+    private fun SenderWithTemplates.toDomain() = sender.toDomain(
+        templates = templates.map { it.toDomain() }
+    )
+
+    private fun SenderTemplate.toEntity() = SenderTemplateEntity(
+        id = id,
+        senderId = senderId,
+        label = label,
+        pattern = pattern,
+        isEnabled = isEnabled,
+        createdAt = createdAt
+    )
+
+    private fun SenderTemplateEntity.toDomain() = SenderTemplate(
+        id = id,
+        senderId = senderId,
+        label = label,
+        pattern = pattern,
+        isEnabled = isEnabled,
+        createdAt = createdAt
     )
 }

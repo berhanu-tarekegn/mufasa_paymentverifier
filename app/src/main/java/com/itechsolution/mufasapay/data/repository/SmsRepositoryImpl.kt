@@ -16,6 +16,9 @@ class SmsRepositoryImpl(
     override suspend fun saveSms(sms: SmsMessage): Result<Long> {
         return try {
             val id = smsMessageDao.insert(sms.toEntity())
+            if (id == -1L) {
+                Timber.w("Duplicate SMS detected, skipping save: ${sms.sender}")
+            }
             Result.success(id)
         } catch (e: Exception) {
             Timber.e(e, "Error saving SMS")
@@ -95,11 +98,16 @@ class SmsRepositoryImpl(
 
     override fun getForwardedCountFlow(): Flow<Int> = smsMessageDao.countForwardedFlow()
 
+    override fun getAmountSumBetweenFlow(startTime: Long, endTime: Long): Flow<Double> =
+        smsMessageDao.sumAmountBetweenFlow(startTime, endTime)
+
     private fun SmsMessage.toEntity() = SmsMessageEntity(
         id = id,
         sender = sender,
         message = message,
         timestamp = timestamp,
+        amount = amount,
+        transactionId = transactionId,
         rawJson = rawJson,
         isForwarded = isForwarded,
         forwardedAt = forwardedAt
@@ -110,6 +118,8 @@ class SmsRepositoryImpl(
         sender = sender,
         message = message,
         timestamp = timestamp,
+        amount = amount,
+        transactionId = transactionId,
         rawJson = rawJson,
         isForwarded = isForwarded,
         forwardedAt = forwardedAt

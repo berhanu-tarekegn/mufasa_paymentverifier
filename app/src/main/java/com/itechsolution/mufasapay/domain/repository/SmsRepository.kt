@@ -16,4 +16,5 @@ interface SmsRepository {
     fun getTotalCountFlow(): Flow<Int>
     suspend fun getForwardedCount(): Result<Int>
     fun getForwardedCountFlow(): Flow<Int>
+    fun getAmountSumBetweenFlow(startTime: Long, endTime: Long): Flow<Double>
 }

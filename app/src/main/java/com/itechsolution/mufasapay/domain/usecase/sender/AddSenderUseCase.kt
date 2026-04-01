@@ -13,8 +13,7 @@ class AddSenderUseCase(
 ) {
     suspend operator fun invoke(
         senderId: String,
-        displayName: String,
-        pattern: String? = null
+        displayName: String
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             if (senderId.isBlank()) {
@@ -28,7 +27,6 @@ class AddSenderUseCase(
             val sender = Sender(
                 senderId = senderId.trim(),
                 displayName = displayName.trim(),
-                pattern = pattern?.trim(),
                 isEnabled = true,
                 addedAt = DateTimeUtils.getCurrentTimestamp(),
                 messageCount = 0

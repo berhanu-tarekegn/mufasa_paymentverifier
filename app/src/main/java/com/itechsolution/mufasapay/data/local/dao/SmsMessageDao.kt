@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SmsMessageDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(sms: SmsMessageEntity): Long
 
     @Update
@@ -52,6 +52,9 @@ interface SmsMessageDao {
 
     @Query("SELECT COUNT(*) FROM sms_messages WHERE isForwarded = 1")
     fun countForwardedFlow(): Flow<Int>
+
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM sms_messages WHERE timestamp >= :startTime AND timestamp < :endTime")
+    fun sumAmountBetweenFlow(startTime: Long, endTime: Long): Flow<Double>
 
     @Query("SELECT COUNT(*) FROM sms_messages WHERE sender = :sender")
     suspend fun countBySender(sender: String): Int

@@ -75,6 +75,22 @@ fun SmsListItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            if (message.amount != null || !message.transactionId.isNullOrBlank()) {
+                Text(
+                    text = buildString {
+                        message.amount?.let { append("Amount: ETB %.2f".format(it)) }
+                        if (!message.transactionId.isNullOrBlank()) {
+                            if (isNotEmpty()) append(" • ")
+                            append("Txn: ${message.transactionId}")
+                        }
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             // Footer: Status and retry button
             Row(
                 modifier = Modifier.fillMaxWidth(),

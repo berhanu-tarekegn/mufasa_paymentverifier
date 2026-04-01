@@ -1,11 +1,9 @@
 package com.itechsolution.mufasapay.domain.usecase
 
 import android.content.Context
-import android.os.Build
 import com.itechsolution.mufasapay.BuildConfig
 import com.itechsolution.mufasapay.data.remote.WebhookClientFactory
-import com.itechsolution.mufasapay.data.remote.dto.Metadata
-import com.itechsolution.mufasapay.data.remote.dto.SmsData
+import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookData
 import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookPayload
 import com.itechsolution.mufasapay.data.worker.SmsForwardWorker
 import com.itechsolution.mufasapay.domain.model.DeliveryLog
@@ -22,7 +20,6 @@ import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.security.MessageDigest
 
 /**
  * Use case for forwarding SMS to webhook endpoint
@@ -201,20 +198,16 @@ class ForwardSmsToWebhookUseCase(
      * Builds the webhook payload from SMS message
      */
     private fun buildPayload(sms: SmsMessage): SmsWebhookPayload {
+        val amount = sms.amount
+            ?: throw IllegalStateException("Cannot build webhook payload without parsed amount")
+        val transactionId = sms.transactionId
+            ?: throw IllegalStateException("Cannot build webhook payload without parsed transaction ID")
+
         return SmsWebhookPayload(
-            event = Constants.WEBHOOK_EVENT_SMS_RECEIVED,
-            timestamp = System.currentTimeMillis(),
-            data = SmsData(
+            data = SmsWebhookData(
                 sender = sms.sender,
-                message = sms.message,
-                receivedAt = sms.timestamp,
-                originalFormat = sms.rawJson
-            ),
-            metadata = Metadata(
-                deviceId = getDeviceId(),
-                appVersion = BuildConfig.VERSION_NAME,
-                sdkVersion = Build.VERSION.SDK_INT,
-                forwardedAt = System.currentTimeMillis()
+                amount = amount,
+                transactionId = transactionId
             )
         )
     }
@@ -235,20 +228,6 @@ class ForwardSmsToWebhookUseCase(
         headers.putAll(config.headers)
 
         return headers
-    }
-
-    /**
-     * Generates a hashed device ID for privacy
-     */
-    private fun getDeviceId(): String {
-        return try {
-            val value = "${Build.MANUFACTURER}_${Build.MODEL}_${Build.DEVICE}"
-            val digest = MessageDigest.getInstance("SHA-256")
-            val hash = digest.digest(value.toByteArray())
-            hash.joinToString("") { "%02x".format(it) }.take(16)
-        } catch (e: Exception) {
-            "unknown_device"
-        }
     }
 
     /**

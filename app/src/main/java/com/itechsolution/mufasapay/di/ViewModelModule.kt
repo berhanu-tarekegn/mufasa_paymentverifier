@@ -21,6 +21,7 @@ val viewModelModule = module {
     viewModel {
         ProviderSelectionViewModel(
             addSenderUseCase = get(),
+            senderRepository = get(),
             preferencesManager = get()
         )
     }
