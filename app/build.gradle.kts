@@ -26,9 +26,21 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            // These should be set as environment variables or in a secure gradle.properties
+            storeFile = file(System.getenv("MUFASAPAY_KEYSTORE_PATH") ?: "release-key.jks")
+            storePassword = System.getenv("MUFASAPAY_KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("MUFASAPAY_KEY_ALIAS") ?: ""
+            keyPassword = System.getenv("MUFASAPAY_KEY_PASSWORD") ?: ""
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
