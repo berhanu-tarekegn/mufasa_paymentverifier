@@ -347,7 +347,7 @@ private fun SetupOverviewCard(
                             append("Add at least one enabled sender. ")
                         }
                         if (setupSummary.enabledTemplateCount == 0) {
-                            append("Configure a template with {amount} and {transaction}. ")
+                            append("Configure a template with {name}, {amount}, and {transaction_id}. ")
                         }
                         if (!setupSummary.webhookReady) {
                             append("Enable and configure the webhook endpoint.")

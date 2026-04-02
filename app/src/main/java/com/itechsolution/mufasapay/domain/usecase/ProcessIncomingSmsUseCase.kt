@@ -6,6 +6,8 @@ import com.itechsolution.mufasapay.domain.repository.SmsRepository
 import com.itechsolution.mufasapay.util.DateTimeUtils
 import com.itechsolution.mufasapay.util.Result
 import com.itechsolution.mufasapay.util.SmsPatternExtractor
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -23,8 +25,12 @@ import timber.log.Timber
 class ProcessIncomingSmsUseCase(
     private val senderRepository: SenderRepository,
     private val smsRepository: SmsRepository,
-    private val forwardSmsToWebhookUseCase: ForwardSmsToWebhookUseCase
+    private val forwardSmsToWebhookUseCase: ForwardSmsToWebhookUseCase,
+    moshi: Moshi
 ) {
+    private val parsedFieldsAdapter = moshi.adapter<Map<String, String>>(
+        Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
+    )
 
     suspend operator fun invoke(
         sender: String,
@@ -78,13 +84,14 @@ class ProcessIncomingSmsUseCase(
             }
 
             val parsedAmount = parsedMatch.amount
+            val parsedName = parsedMatch.values["name"]?.trim()
             val parsedTransactionId = parsedMatch.transactionId?.trim()
-            if (parsedAmount == null || parsedTransactionId.isNullOrBlank()) {
-                Timber.w("Matched template did not extract required amount/transaction fields for sender: $sender")
-                return@withContext Result.error("Matched template must extract both amount and transaction ID")
+            if (parsedAmount == null || parsedTransactionId.isNullOrBlank() || parsedName.isNullOrBlank()) {
+                Timber.w("Matched template did not extract required name/amount/transaction fields for sender: $sender")
+                return@withContext Result.error("Matched template must extract sender name, amount, and transaction ID")
             }
 
-            Timber.i("Message matches template and extracted amount/transaction, continuing processing")
+            Timber.i("Message matches template and extracted name, amount, and transaction ID, continuing processing")
 
             // 2. Save SMS to database
             val sms = SmsMessage(
@@ -93,6 +100,7 @@ class ProcessIncomingSmsUseCase(
                 timestamp = timestamp,
                 amount = parsedAmount,
                 transactionId = parsedTransactionId,
+                rawJson = parsedFieldsAdapter.toJson(parsedMatch.values),
                 isForwarded = false
             )
 

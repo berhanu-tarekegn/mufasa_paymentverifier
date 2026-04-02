@@ -24,7 +24,7 @@ val appModule = module {
 
     // Core use cases
     factory { ForwardSmsToWebhookUseCase(androidContext(), get(), get(), get(), get(), get(), get()) }
-    factory { ProcessIncomingSmsUseCase(get(), get(), get()) }
+    factory { ProcessIncomingSmsUseCase(get(), get(), get(), get()) }
 
     // Sender management use cases
     factory { AddSenderUseCase(get()) }

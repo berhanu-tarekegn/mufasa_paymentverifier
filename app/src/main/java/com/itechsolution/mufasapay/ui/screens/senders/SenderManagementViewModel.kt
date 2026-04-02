@@ -275,8 +275,9 @@ class SenderManagementViewModel(
 
     private fun validateTemplatePattern(pattern: String): String? {
         return when {
+            !pattern.contains("{name}") -> "Template must include {name} to map the payload sender"
             !pattern.contains("{amount}") -> "Template must include {amount} to extract sums"
-            !pattern.contains("{transaction}") -> "Template must include {transaction} to build the webhook payload"
+            !pattern.contains("{transaction_id}") -> "Template must include {transaction_id} to build the webhook payload"
             else -> null
         }
     }
