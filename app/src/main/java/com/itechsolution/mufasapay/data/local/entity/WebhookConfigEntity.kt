@@ -8,9 +8,9 @@ data class WebhookConfigEntity(
     @PrimaryKey
     val id: Int = 1, // Single row configuration
 
-    val url: String,
+    val uploadUrl: String,
 
-    val method: String = "POST",
+    val deleteUrlTemplate: String,
 
     val headers: String, // JSON string of headers map
 

@@ -7,7 +7,6 @@ import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookPayload
 import com.itechsolution.mufasapay.domain.model.WebhookConfig
 import com.itechsolution.mufasapay.domain.repository.WebhookRepository
 import com.itechsolution.mufasapay.util.Result
-import com.itechsolution.mufasapay.util.WebhookUrlResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -28,18 +27,18 @@ class TestWebhookConnectionUseCase(
             }
 
             val config = configResult.getOrNull()!!
-            if (config.url.isBlank()) {
-                return@withContext Result.error("Webhook URL is empty")
+            if (config.uploadUrl.isBlank()) {
+                return@withContext Result.error("Upload webhook URL is empty")
             }
 
-            Timber.d("Testing webhook connection to: ${config.url}")
+            Timber.d("Testing webhook connection to: ${config.uploadUrl}")
 
             val testPayload = buildTestPayload()
-            val apiService = webhookClientFactory.createService(config)
+            val apiService = webhookClientFactory.createService(config.uploadUrl, config)
             val headers = buildHeaders(config)
 
             val response = apiService.forwardSmsPost(
-                WebhookUrlResolver.uploadUrl(config.url),
+                config.uploadUrl,
                 headers,
                 testPayload
             )

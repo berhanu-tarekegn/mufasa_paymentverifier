@@ -23,11 +23,11 @@ class WebhookConfigViewModel(
 ) : ViewModel() {
 
     // Form fields
-    private val _url = MutableStateFlow("")
-    val url: StateFlow<String> = _url.asStateFlow()
+    private val _uploadUrl = MutableStateFlow("")
+    val uploadUrl: StateFlow<String> = _uploadUrl.asStateFlow()
 
-    private val _method = MutableStateFlow("POST")
-    val method: StateFlow<String> = _method.asStateFlow()
+    private val _deleteUrlTemplate = MutableStateFlow("")
+    val deleteUrlTemplate: StateFlow<String> = _deleteUrlTemplate.asStateFlow()
 
     private val _headers = MutableStateFlow<Map<String, String>>(emptyMap())
     val headers: StateFlow<Map<String, String>> = _headers.asStateFlow()
@@ -80,8 +80,8 @@ class WebhookConfigViewModel(
         viewModelScope.launch {
             getWebhookConfigUseCase().collect { config ->
                 config?.let {
-                    _url.value = it.url
-                    _method.value = "POST"
+                    _uploadUrl.value = it.uploadUrl
+                    _deleteUrlTemplate.value = it.deleteUrlTemplate
                     _headers.value = it.headers
                     _authType.value = it.authType
                     _authValue.value = it.authValue ?: ""
@@ -96,8 +96,8 @@ class WebhookConfigViewModel(
     }
 
     // Update methods
-    fun updateUrl(value: String) { _url.value = value }
-    fun updateMethod(value: String) { _method.value = value }
+    fun updateUploadUrl(value: String) { _uploadUrl.value = value }
+    fun updateDeleteUrlTemplate(value: String) { _deleteUrlTemplate.value = value }
     fun updateAuthType(value: String) { _authType.value = value }
     fun updateAuthValue(value: String) { _authValue.value = value }
     fun updateTimeout(value: Int) { _timeout.value = value }
@@ -124,9 +124,14 @@ class WebhookConfigViewModel(
             _isSaving.value = true
             _errorMessage.value = null
 
-            // Validation
-            if (!validateUrl(_url.value)) {
-                _errorMessage.value = "Invalid URL. Must start with http:// or https://"
+            if (!validateUrl(_uploadUrl.value)) {
+                _errorMessage.value = "Invalid upload URL. Must start with http:// or https://"
+                _isSaving.value = false
+                return@launch
+            }
+
+            if (!validateDeleteUrlTemplate(_deleteUrlTemplate.value)) {
+                _errorMessage.value = "Invalid delete URL. Must start with http:// or https:// and include {transaction_id}"
                 _isSaving.value = false
                 return@launch
             }
@@ -144,8 +149,8 @@ class WebhookConfigViewModel(
             }
 
             when (val result = saveWebhookConfigUseCase(
-                url = _url.value,
-                method = _method.value,
+                uploadUrl = _uploadUrl.value,
+                deleteUrlTemplate = _deleteUrlTemplate.value,
                 headers = _headers.value,
                 authType = _authType.value,
                 authValue = _authValue.value.ifBlank { null },
@@ -202,6 +207,10 @@ class WebhookConfigViewModel(
      */
     private fun validateUrl(url: String): Boolean {
         return url.matches(Regex("^https?://.*"))
+    }
+
+    private fun validateDeleteUrlTemplate(url: String): Boolean {
+        return validateUrl(url) && url.contains("{transaction_id}")
     }
 
     fun clearErrorMessage() {

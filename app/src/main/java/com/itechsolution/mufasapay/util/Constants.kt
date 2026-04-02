@@ -42,8 +42,4 @@ object Constants {
     const val AUTH_TYPE_BASIC = "BASIC"
     const val AUTH_TYPE_API_KEY = "API_KEY"
 
-    // HTTP methods
-    const val HTTP_METHOD_POST = "POST"
-    const val HTTP_METHOD_PUT = "PUT"
-    const val HTTP_METHOD_PATCH = "PATCH"
 }
