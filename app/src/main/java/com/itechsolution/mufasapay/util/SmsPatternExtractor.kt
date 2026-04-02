@@ -93,7 +93,7 @@ object SmsPatternExtractor {
             "{account}" to """[\d\*]+""",
             "{phone}" to """\+?[\d\*]+""",
             "{datetime}" to """.+?""",
-            "{transaction}" to """[\w\*]+""",
+            "{transaction_id}" to """[\w\*]+""",
             "{balance}" to """[\d,]+(?:\.\d+)?""",
             "{ignore}" to """.*?"""
         )
@@ -192,7 +192,7 @@ object SmsPatternExtractor {
                 pattern = pattern,
                 values = values,
                 amount = values["amount"]?.let(::normalizeAmount),
-                transactionId = values["transaction"]
+                transactionId = values["transaction_id"]
             )
         } catch (e: PatternSyntaxException) {
             Timber.e(e, "Invalid pattern syntax during extraction: $pattern")

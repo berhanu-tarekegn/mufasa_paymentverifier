@@ -316,7 +316,7 @@ private fun ManageTemplatesBottomSheet(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Templates define which SMS formats this sender should match. Include {amount} and {transaction} so the app can extract webhook fields and sums.",
+                text = "Templates define which SMS formats this sender should match. Include {name}, {amount}, and {transaction_id} so the app can extract webhook fields and sums.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -486,7 +486,7 @@ private fun AddTemplateForm(
                 error = null
             },
             label = { Text("Message Pattern *") },
-            placeholder = { Text("e.g., Dear {name}, you have received ETB {amount}...") },
+            placeholder = { Text("e.g., Dear {name}, you have received ETB {amount}... Ref No {transaction_id}") },
             modifier = Modifier.fillMaxWidth(),
             minLines = 3
         )
@@ -494,7 +494,7 @@ private fun AddTemplateForm(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Required: {amount}, {transaction}. Optional: {name}, {account}, {datetime}, {balance}, {ignore}",
+            text = "Required: {name}, {amount}, {transaction_id}. Optional: {account}, {datetime}, {balance}, {ignore}",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary
         )

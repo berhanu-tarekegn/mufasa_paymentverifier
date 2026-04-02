@@ -17,6 +17,7 @@ import com.itechsolution.mufasapay.domain.repository.WebhookRepository
 import com.itechsolution.mufasapay.util.DateTimeUtils
 import com.itechsolution.mufasapay.util.Result
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -35,6 +36,9 @@ class ForwardSmsToWebhookUseCase(
     private val webhookClientFactory: WebhookClientFactory,
     private val moshi: Moshi
 ) {
+    private val parsedFieldsAdapter = moshi.adapter<Map<String, String>>(
+        Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
+    )
 
     suspend operator fun invoke(sms: SmsMessage, existingLogId: Long? = null): Result<DeliveryLog> = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
@@ -201,18 +205,33 @@ class ForwardSmsToWebhookUseCase(
             ?: throw IllegalStateException("Cannot build webhook payload without parsed amount")
         val transactionId = sms.transactionId
             ?: throw IllegalStateException("Cannot build webhook payload without parsed transaction ID")
+        val parsedFields = parseParsedFields(sms.rawJson)
+        val senderName = parsedFields["name"]?.takeIf { it.isNotBlank() } ?: sms.sender
         val provider = senderRepository.getSenderById(sms.sender).getOrNull()?.displayName
             ?.takeIf { it.isNotBlank() }
             ?: sms.sender
 
         return SmsWebhookPayload(
             data = SmsWebhookData(
-                sender = sms.sender,
+                sender = senderName,
                 provider = provider,
                 amount = amount,
                 transactionId = transactionId
             )
         )
+    }
+
+    private fun parseParsedFields(rawJson: String?): Map<String, String> {
+        if (rawJson.isNullOrBlank()) {
+            return emptyMap()
+        }
+
+        return try {
+            parsedFieldsAdapter.fromJson(rawJson).orEmpty()
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to parse stored SMS template fields")
+            emptyMap()
+        }
     }
 
     /**

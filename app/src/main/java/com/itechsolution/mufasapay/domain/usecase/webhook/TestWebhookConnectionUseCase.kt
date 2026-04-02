@@ -60,7 +60,7 @@ class TestWebhookConnectionUseCase(
     private fun buildTestPayload(): SmsWebhookPayload {
         return SmsWebhookPayload(
             data = SmsWebhookData(
-                sender = "TEST_SENDER",
+                sender = "Test Customer",
                 provider = "Test Provider",
                 amount = 123.45,
                 transactionId = "TEST12345"

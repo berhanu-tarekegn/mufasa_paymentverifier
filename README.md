@@ -24,11 +24,12 @@ SMS Received → Sender Enabled? → Matches Any Enabled Template? → Save to D
 
 - **Sender Whitelisting** — only process SMS from configured senders
 - **Multi-Template Matching** — attach multiple message templates to each sender and match against any enabled template
-- **Webhook Forwarding** — POST upload and DELETE removal endpoints with Bearer, Basic, API Key, or no auth
+- **Structured Extraction** — templates extract `name`, `amount`, and `transaction_id` before forwarding
+- **Webhook Forwarding** — configurable POST upload URL and DELETE URL template with Bearer, Basic, API Key, or no auth
 - **Retry Logic** — automatic retries with exponential backoff via WorkManager
 - **Delivery Tracking** — full audit trail with status (PENDING, SUCCESS, FAILED, RETRYING), HTTP response codes, and duration
 - **Real-time Dashboard** — reactive stats powered by Room Flows
-- **Connection Testing** — test your webhook endpoint before going live
+- **Connection Testing** — test the upload endpoint before going live
 - **Ethiopian Providers** — 10 pre-configured financial providers for quick onboarding
 
 ## Architecture
@@ -132,27 +133,40 @@ The app requests these permissions at runtime:
 
 ## Webhook Configuration
 
-### Payload Format
+The app currently uses two webhook settings:
 
-Every forwarded SMS is sent as JSON:
+- `Upload URL` — where new matched transactions are sent with `POST`
+- `Delete URL Template` — where synced transactions are removed with `DELETE`; must include `{transaction_id}`
+
+Example delete template:
+
+```text
+https://example.com/v1/transactions/{transaction_id}
+```
+
+### Upload Payload
+
+Every forwarded SMS is sent as JSON in this shape:
 
 ```json
 {
-  "event": "sms.received",
-  "timestamp": 1708000000000,
   "data": {
-    "sender": "CBE BIRR",
-    "message": "You have received ETB 1,500.00 from ABEBE KEBEDE",
-    "receivedAt": 1707999999000
-  },
-  "metadata": {
-    "deviceId": "a1b2c3d4e5f6g7h8",
-    "appVersion": "1.0",
-    "sdkVersion": 36,
-    "forwardedAt": 1708000000010
+    "sender": "Birhanu",
+    "provider": "CBE Birr",
+    "amount": 1500.0,
+    "transaction_id": "FT26042XNSX4"
   }
 }
 ```
+
+Field mapping:
+
+- `sender` — the extracted `{name}` value from the matched SMS template
+- `provider` — the configured sender display name
+- `amount` — the extracted `{amount}` value as a number
+- `transaction_id` — the extracted `{transaction_id}` value
+
+Delete requests do not send a request body. The app replaces `{transaction_id}` in the configured delete URL template and issues an HTTP `DELETE`.
 
 ### Authentication Options
 
@@ -162,6 +176,10 @@ Every forwarded SMS is sent as JSON:
 | Basic Auth | `Authorization: Basic <base64(user:pass)>` |
 | API Key | Custom header with your key |
 | None | No auth header |
+
+### Connection Testing
+
+The Test action sends a sample upload payload to the configured `Upload URL`. It does not test the delete endpoint because delete requires a real `transaction_id`.
 
 ### Retry Behavior
 
@@ -185,15 +203,36 @@ Five Room tables with reactive Flow queries:
 
 Indexes on `timestamp`, `sender`, `isForwarded`, `status`, and the SMS uniqueness key support query performance and duplicate suppression. Sender templates cascade-delete with their parent sender.
 
+The `sms_messages` table stores the parsed `amount`, parsed `transactionId`, and serialized extracted template fields in `rawJson` so retries can rebuild the same webhook payload.
+
 ## Pattern Matching
 
 The app filters SMS using sender-specific templates:
 
 1. **Per-sender templates** — Each sender can have multiple labeled templates, and an SMS is accepted when it matches any enabled template
-2. **Placeholder support** — Templates support placeholders such as `{name}`, `{amount}`, `{account}`, `{transaction}`, `{datetime}`, `{balance}`, and `{ignore}`
-3. **Sample-based bootstrapping** — Users can paste a sample SMS and auto-generate a starter template, then refine it manually
+2. **Required fields** — A valid transaction template must extract `{name}`, `{amount}`, and `{transaction_id}`
+3. **Placeholder support** — Templates support `{name}`, `{amount}`, `{account}`, `{phone}`, `{datetime}`, `{transaction_id}`, `{balance}`, and `{ignore}`
+4. **Sample-based bootstrapping** — Users can paste a sample SMS and auto-generate a starter template, then refine it manually
 
 The `SmsPatternExtractor` utility handles both extraction and matching.
+
+Example template:
+
+```text
+Dear {name}, you received {amount}Br. from {ignore} on {datetime},Txn ID {transaction_id}.Your CBE Birr account balance is {balance}Br.{ignore}
+```
+
+Example matched SMS:
+
+```text
+Dear birhanu, you received 42.00Br. from 0912296964 - FUAD RAHMETO SEMAN on 09/02/26 17:48,Txn ID DB9215LOOSO.Your CBE Birr account balance is 217.00Br. Thank you!
+```
+
+Extracted values:
+
+- `{name}` → `birhanu`
+- `{amount}` → `42.0`
+- `{transaction_id}` → `DB9215LOOSO`
 
 ## Contributing
 
@@ -236,7 +275,7 @@ The `SmsPatternExtractor` utility handles both extraction and matching.
 | Class | What It Does |
 |---|---|
 | `ProcessIncomingSmsUseCase` | Main SMS pipeline — whitelist check, pattern match, save, forward |
-| `ForwardSmsToWebhookUseCase` | Builds payload, makes HTTP call, creates delivery log, schedules retry |
+| `ForwardSmsToWebhookUseCase` | Builds payload from extracted SMS fields, makes HTTP call, creates delivery log, schedules retry |
 | `SmsPatternExtractor` | Extracts patterns from sample messages and matches incoming SMS |
 | `WebhookClientFactory` | Creates Retrofit instances dynamically per webhook config |
 | `SmsBroadcastReceiver` | Entry point — catches SMS_RECEIVED broadcasts |
