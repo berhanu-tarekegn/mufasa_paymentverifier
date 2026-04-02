@@ -6,8 +6,8 @@ import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookData
 import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookPayload
 import com.itechsolution.mufasapay.domain.model.WebhookConfig
 import com.itechsolution.mufasapay.domain.repository.WebhookRepository
-import com.itechsolution.mufasapay.util.Constants
 import com.itechsolution.mufasapay.util.Result
+import com.itechsolution.mufasapay.util.WebhookUrlResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -38,12 +38,11 @@ class TestWebhookConnectionUseCase(
             val apiService = webhookClientFactory.createService(config)
             val headers = buildHeaders(config)
 
-            val response = when (config.method.uppercase()) {
-                Constants.HTTP_METHOD_POST -> apiService.forwardSmsPost(config.url, headers, testPayload)
-                Constants.HTTP_METHOD_PUT -> apiService.forwardSmsPut(config.url, headers, testPayload)
-                Constants.HTTP_METHOD_PATCH -> apiService.forwardSmsPatch(config.url, headers, testPayload)
-                else -> apiService.forwardSmsPost(config.url, headers, testPayload)
-            }
+            val response = apiService.forwardSmsPost(
+                WebhookUrlResolver.uploadUrl(config.url),
+                headers,
+                testPayload
+            )
 
             if (response.isSuccessful) {
                 Timber.i("Webhook test successful. HTTP ${response.code()}")
@@ -63,6 +62,7 @@ class TestWebhookConnectionUseCase(
         return SmsWebhookPayload(
             data = SmsWebhookData(
                 sender = "TEST_SENDER",
+                provider = "Test Provider",
                 amount = 123.45,
                 transactionId = "TEST12345"
             )

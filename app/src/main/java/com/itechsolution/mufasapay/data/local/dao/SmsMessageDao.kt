@@ -23,6 +23,9 @@ interface SmsMessageDao {
     @Query("SELECT * FROM sms_messages WHERE id = :id")
     suspend fun getById(id: Long): SmsMessageEntity?
 
+    @Query("DELETE FROM sms_messages WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
     @Query("SELECT * FROM sms_messages ORDER BY timestamp DESC")
     fun getAllFlow(): Flow<List<SmsMessageEntity>>
 
@@ -58,6 +61,9 @@ interface SmsMessageDao {
 
     @Query("SELECT COUNT(*) FROM sms_messages WHERE sender = :sender")
     suspend fun countBySender(sender: String): Int
+
+    @Query("SELECT MAX(timestamp) FROM sms_messages WHERE sender = :sender")
+    suspend fun getLatestTimestampBySender(sender: String): Long?
 
     @Query("UPDATE sms_messages SET isForwarded = 1, forwardedAt = :forwardedAt WHERE id = :id")
     suspend fun markAsForwarded(id: Long, forwardedAt: Long)

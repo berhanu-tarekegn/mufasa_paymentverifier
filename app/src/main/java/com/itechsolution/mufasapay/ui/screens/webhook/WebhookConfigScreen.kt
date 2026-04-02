@@ -135,8 +135,9 @@ fun WebhookConfigScreen(
             OutlinedTextField(
                 value = url,
                 onValueChange = { viewModel.updateUrl(it) },
-                label = { Text("Webhook URL") },
-                placeholder = { Text("https://example.com/webhook") },
+                label = { Text("Webhook Base URL") },
+                placeholder = { Text("https://example.com") },
+                supportingText = { Text("Uploads use POST /v1/transactions. Deletes use DELETE /v1/transactions/{transaction_id}.") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = isEnabled
             )
@@ -162,7 +163,7 @@ fun WebhookConfigScreen(
                     expanded = methodExpanded,
                     onDismissRequest = { methodExpanded = false }
                 ) {
-                    listOf("POST", "PUT", "PATCH").forEach { item ->
+                    listOf("POST").forEach { item ->
                         DropdownMenuItem(
                             text = { Text(item) },
                             onClick = {

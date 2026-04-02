@@ -17,6 +17,7 @@ interface SenderRepository {
     suspend fun isSenderWhitelisted(senderId: String): Result<Boolean>
     suspend fun toggleSenderStatus(senderId: String, isEnabled: Boolean): Result<Unit>
     suspend fun updateSenderStatistics(senderId: String, timestamp: Long): Result<Unit>
+    suspend fun replaceSenderStatistics(senderId: String, messageCount: Int, lastMessageAt: Long?): Result<Unit>
     suspend fun getTotalCount(): Result<Int>
     fun getTotalCountFlow(): Flow<Int>
     suspend fun getEnabledCount(): Result<Int>

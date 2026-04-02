@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -17,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import com.itechsolution.mufasapay.domain.model.SmsMessage
 import com.itechsolution.mufasapay.util.DateTimeUtils
 
@@ -27,6 +31,7 @@ import com.itechsolution.mufasapay.util.DateTimeUtils
 fun SmsListItem(
     message: SmsMessage,
     onRetry: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -112,8 +117,29 @@ fun SmsListItem(
                 )
 
                 if (!message.isForwarded && onRetry != null) {
-                    TextButton(onClick = onRetry) {
-                        Text("Retry")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = onRetry) {
+                            Text("Retry")
+                        }
+                        if (onDelete != null) {
+                            IconButton(onClick = onDelete) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete message",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                } else if (onDelete != null) {
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete message",
+                            tint = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }

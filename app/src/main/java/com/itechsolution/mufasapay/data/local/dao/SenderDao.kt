@@ -66,6 +66,9 @@ interface SenderDao {
     @Query("UPDATE senders SET lastMessageAt = :timestamp, messageCount = messageCount + 1 WHERE senderId = :senderId")
     suspend fun updateStatistics(senderId: String, timestamp: Long)
 
+    @Query("UPDATE senders SET lastMessageAt = :lastMessageAt, messageCount = :messageCount WHERE senderId = :senderId")
+    suspend fun replaceStatistics(senderId: String, lastMessageAt: Long?, messageCount: Int)
+
     @Query("SELECT COUNT(*) FROM senders")
     suspend fun count(): Int
 

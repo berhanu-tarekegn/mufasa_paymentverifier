@@ -123,6 +123,16 @@ class SenderRepositoryImpl(
         }
     }
 
+    override suspend fun replaceSenderStatistics(senderId: String, messageCount: Int, lastMessageAt: Long?): Result<Unit> {
+        return try {
+            senderDao.replaceStatistics(senderId, lastMessageAt, messageCount)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "Error replacing sender statistics")
+            Result.error(e, "Failed to replace sender statistics")
+        }
+    }
+
     override suspend fun getTotalCount(): Result<Int> {
         return try {
             val count = senderDao.count()

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 interface SmsRepository {
     suspend fun saveSms(sms: SmsMessage): Result<Long>
     suspend fun getSmsById(id: Long): Result<SmsMessage?>
+    suspend fun deleteSms(id: Long): Result<Unit>
     fun getAllSmsFlow(): Flow<List<SmsMessage>>
     suspend fun getRecentSms(limit: Int = 50): Result<List<SmsMessage>>
     fun getSmsBySenderFlow(sender: String): Flow<List<SmsMessage>>
@@ -17,4 +18,6 @@ interface SmsRepository {
     suspend fun getForwardedCount(): Result<Int>
     fun getForwardedCountFlow(): Flow<Int>
     fun getAmountSumBetweenFlow(startTime: Long, endTime: Long): Flow<Double>
+    suspend fun getCountBySender(sender: String): Result<Int>
+    suspend fun getLatestTimestampBySender(sender: String): Result<Long?>
 }

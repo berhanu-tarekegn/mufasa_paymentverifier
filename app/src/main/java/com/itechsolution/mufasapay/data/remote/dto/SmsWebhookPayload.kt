@@ -14,9 +14,12 @@ data class SmsWebhookData(
     @Json(name = "sender")
     val sender: String,
 
+    @Json(name = "provider")
+    val provider: String,
+
     @Json(name = "amount")
     val amount: Double,
 
-    @Json(name = "transactionId")
+    @Json(name = "transaction_id")
     val transactionId: String
 )

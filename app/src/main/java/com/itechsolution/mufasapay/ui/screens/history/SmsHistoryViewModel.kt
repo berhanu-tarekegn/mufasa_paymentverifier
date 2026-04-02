@@ -3,6 +3,7 @@ package com.itechsolution.mufasapay.ui.screens.history
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.itechsolution.mufasapay.domain.model.SmsMessage
+import com.itechsolution.mufasapay.domain.usecase.history.DeleteSmsTransactionUseCase
 import com.itechsolution.mufasapay.domain.usecase.history.GetSmsHistoryUseCase
 import com.itechsolution.mufasapay.domain.usecase.history.RetryFailedDeliveryUseCase
 import com.itechsolution.mufasapay.util.Result
@@ -29,7 +30,8 @@ enum class FilterType {
  */
 class SmsHistoryViewModel(
     private val getSmsHistoryUseCase: GetSmsHistoryUseCase,
-    private val retryFailedDeliveryUseCase: RetryFailedDeliveryUseCase
+    private val retryFailedDeliveryUseCase: RetryFailedDeliveryUseCase,
+    private val deleteSmsTransactionUseCase: DeleteSmsTransactionUseCase
 ) : ViewModel() {
 
     private val _filter = MutableStateFlow(FilterType.ALL)
@@ -94,6 +96,22 @@ class SmsHistoryViewModel(
                     _errorMessage.value = message
                 }
 
+                else -> {}
+            }
+        }
+    }
+
+    fun deleteMessage(smsId: Long) {
+        viewModelScope.launch {
+            when (val result = deleteSmsTransactionUseCase(smsId)) {
+                is Result.Success -> {
+                    _successMessage.value = "Transaction deleted successfully"
+                }
+                is Result.Error -> {
+                    val message = result.message ?: "Failed to delete transaction"
+                    Timber.e(result.exception, message)
+                    _errorMessage.value = message
+                }
                 else -> {}
             }
         }

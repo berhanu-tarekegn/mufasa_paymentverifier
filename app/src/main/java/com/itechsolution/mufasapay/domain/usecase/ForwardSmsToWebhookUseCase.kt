@@ -11,11 +11,12 @@ import com.itechsolution.mufasapay.domain.model.DeliveryStatus
 import com.itechsolution.mufasapay.domain.model.SmsMessage
 import com.itechsolution.mufasapay.domain.model.WebhookConfig
 import com.itechsolution.mufasapay.domain.repository.DeliveryRepository
+import com.itechsolution.mufasapay.domain.repository.SenderRepository
 import com.itechsolution.mufasapay.domain.repository.SmsRepository
 import com.itechsolution.mufasapay.domain.repository.WebhookRepository
-import com.itechsolution.mufasapay.util.Constants
 import com.itechsolution.mufasapay.util.DateTimeUtils
 import com.itechsolution.mufasapay.util.Result
+import com.itechsolution.mufasapay.util.WebhookUrlResolver
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -31,6 +32,7 @@ class ForwardSmsToWebhookUseCase(
     private val webhookRepository: WebhookRepository,
     private val deliveryRepository: DeliveryRepository,
     private val smsRepository: SmsRepository,
+    private val senderRepository: SenderRepository,
     private val webhookClientFactory: WebhookClientFactory,
     private val moshi: Moshi
 ) {
@@ -163,12 +165,11 @@ class ForwardSmsToWebhookUseCase(
             val headers = buildHeaders(config)
 
             // Make request based on HTTP method
-            val response = when (config.method.uppercase()) {
-                Constants.HTTP_METHOD_POST -> apiService.forwardSmsPost(config.url, headers, payload)
-                Constants.HTTP_METHOD_PUT -> apiService.forwardSmsPut(config.url, headers, payload)
-                Constants.HTTP_METHOD_PATCH -> apiService.forwardSmsPatch(config.url, headers, payload)
-                else -> apiService.forwardSmsPost(config.url, headers, payload)
-            }
+            val response = apiService.forwardSmsPost(
+                WebhookUrlResolver.uploadUrl(config.url),
+                headers,
+                payload
+            )
 
             if (response.isSuccessful) {
                 val body = response.body()?.string() ?: ""
@@ -197,15 +198,19 @@ class ForwardSmsToWebhookUseCase(
     /**
      * Builds the webhook payload from SMS message
      */
-    private fun buildPayload(sms: SmsMessage): SmsWebhookPayload {
+    private suspend fun buildPayload(sms: SmsMessage): SmsWebhookPayload {
         val amount = sms.amount
             ?: throw IllegalStateException("Cannot build webhook payload without parsed amount")
         val transactionId = sms.transactionId
             ?: throw IllegalStateException("Cannot build webhook payload without parsed transaction ID")
+        val provider = senderRepository.getSenderById(sms.sender).getOrNull()?.displayName
+            ?.takeIf { it.isNotBlank() }
+            ?: sms.sender
 
         return SmsWebhookPayload(
             data = SmsWebhookData(
                 sender = sms.sender,
+                provider = provider,
                 amount = amount,
                 transactionId = transactionId
             )

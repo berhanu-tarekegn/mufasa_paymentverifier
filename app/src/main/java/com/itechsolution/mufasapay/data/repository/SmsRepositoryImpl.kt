@@ -36,6 +36,16 @@ class SmsRepositoryImpl(
         }
     }
 
+    override suspend fun deleteSms(id: Long): Result<Unit> {
+        return try {
+            smsMessageDao.deleteById(id)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "Error deleting SMS")
+            Result.error(e, "Failed to delete SMS")
+        }
+    }
+
     override fun getAllSmsFlow(): Flow<List<SmsMessage>> {
         return smsMessageDao.getAllFlow().map { entities ->
             entities.map { it.toDomain() }
@@ -100,6 +110,24 @@ class SmsRepositoryImpl(
 
     override fun getAmountSumBetweenFlow(startTime: Long, endTime: Long): Flow<Double> =
         smsMessageDao.sumAmountBetweenFlow(startTime, endTime)
+
+    override suspend fun getCountBySender(sender: String): Result<Int> {
+        return try {
+            Result.success(smsMessageDao.countBySender(sender))
+        } catch (e: Exception) {
+            Timber.e(e, "Error counting SMS by sender")
+            Result.error(e, "Failed to count sender messages")
+        }
+    }
+
+    override suspend fun getLatestTimestampBySender(sender: String): Result<Long?> {
+        return try {
+            Result.success(smsMessageDao.getLatestTimestampBySender(sender))
+        } catch (e: Exception) {
+            Timber.e(e, "Error getting latest SMS timestamp by sender")
+            Result.error(e, "Failed to get latest sender timestamp")
+        }
+    }
 
     private fun SmsMessage.toEntity() = SmsMessageEntity(
         id = id,
