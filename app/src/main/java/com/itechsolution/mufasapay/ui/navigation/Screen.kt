@@ -6,6 +6,7 @@ package com.itechsolution.mufasapay.ui.navigation
 sealed class Screen(val route: String) {
     object Permissions : Screen("permissions")
     object ProviderSelection : Screen("provider_selection")
+    object AppShell : Screen("app_shell")
     object Dashboard : Screen("dashboard")
     object SenderManagement : Screen("sender_management")
     object WebhookConfig : Screen("webhook_config")

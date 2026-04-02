@@ -60,10 +60,11 @@ class SmsReceiverService : Service() {
                 val result = processIncomingSmsUseCase(sender, message, timestamp)
 
                 if (result.isSuccess) {
-                    Timber.i("SMS processed successfully in service")
-                    showNotification("SMS Forwarded", "Message from $sender forwarded successfully")
+                    Timber.i("SMS processing completed in service for sender: $sender")
                 } else {
-                    Timber.w("SMS processing failed: ${result.exceptionOrNull()?.message}")
+                    val errorMessage = result.exceptionOrNull()?.message ?: "Unable to process SMS"
+                    Timber.w("SMS processing failed: $errorMessage")
+                    showNotification("SMS Processing Error", errorMessage)
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Exception in SMS processing service")

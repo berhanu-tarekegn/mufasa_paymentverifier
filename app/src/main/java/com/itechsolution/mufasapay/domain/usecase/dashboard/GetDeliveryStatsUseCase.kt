@@ -3,11 +3,14 @@ package com.itechsolution.mufasapay.domain.usecase.dashboard
 import com.itechsolution.mufasapay.domain.repository.DeliveryRepository
 import com.itechsolution.mufasapay.domain.repository.SenderRepository
 import com.itechsolution.mufasapay.domain.repository.SmsRepository
+import com.itechsolution.mufasapay.util.DateTimeUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
 data class DeliveryStats(
     val totalSms: Int,
+    val dailyAmountTotal: Double,
+    val weeklyAmountTotal: Double,
     val forwardedSms: Int,
     val successfulDeliveries: Int,
     val failedDeliveries: Int,
@@ -23,14 +26,36 @@ class GetDeliveryStatsUseCase(
     private val senderRepository: SenderRepository
 ) {
     operator fun invoke(): Flow<DeliveryStats> {
+        val dayStart = DateTimeUtils.startOfCurrentDay()
+        val nextDayStart = DateTimeUtils.startOfNextDay()
+        val weekStart = DateTimeUtils.startOfCurrentWeek()
+
         return combine(
-            smsRepository.getTotalCountFlow(),
-            smsRepository.getForwardedCountFlow(),
-            deliveryRepository.getSuccessCountFlow(),
-            deliveryRepository.getFailedCountFlow(),
-            deliveryRepository.getPendingCountFlow(),
-        ) { totalSms, forwardedSms, successCount, failedCount, pendingCount ->
-            PartialStats(totalSms, forwardedSms, successCount, failedCount, pendingCount)
+            combine(
+                smsRepository.getTotalCountFlow(),
+                smsRepository.getAmountSumBetweenFlow(dayStart, nextDayStart),
+                smsRepository.getAmountSumBetweenFlow(weekStart, Long.MAX_VALUE)
+            ) { totalSms, dailyAmountTotal, weeklyAmountTotal ->
+                Triple(totalSms, dailyAmountTotal, weeklyAmountTotal)
+            },
+            combine(
+                smsRepository.getForwardedCountFlow(),
+                deliveryRepository.getSuccessCountFlow(),
+                deliveryRepository.getFailedCountFlow(),
+                deliveryRepository.getPendingCountFlow()
+            ) { forwardedSms, successCount, failedCount, pendingCount ->
+                Quadruple(forwardedSms, successCount, failedCount, pendingCount)
+            }
+        ) { (totalSms, dailyAmountTotal, weeklyAmountTotal), deliveryStats ->
+            PartialStats(
+                totalSms = totalSms,
+                dailyAmountTotal = dailyAmountTotal,
+                weeklyAmountTotal = weeklyAmountTotal,
+                forwardedSms = deliveryStats.forwardedSms,
+                successCount = deliveryStats.successCount,
+                failedCount = deliveryStats.failedCount,
+                pendingCount = deliveryStats.pendingCount
+            )
         }.combine(
             combine(
                 deliveryRepository.getRetryingCountFlow(),
@@ -45,6 +70,8 @@ class GetDeliveryStatsUseCase(
             
             DeliveryStats(
                 totalSms = partial.totalSms,
+                dailyAmountTotal = partial.dailyAmountTotal,
+                weeklyAmountTotal = partial.weeklyAmountTotal,
                 forwardedSms = partial.forwardedSms,
                 successfulDeliveries = partial.forwardedSms, // SMS marked as forwarded is the gold standard for success
                 failedDeliveries = partial.failedCount,
@@ -58,6 +85,15 @@ class GetDeliveryStatsUseCase(
 
     private data class PartialStats(
         val totalSms: Int,
+        val dailyAmountTotal: Double,
+        val weeklyAmountTotal: Double,
+        val forwardedSms: Int,
+        val successCount: Int,
+        val failedCount: Int,
+        val pendingCount: Int
+    )
+
+    private data class Quadruple(
         val forwardedSms: Int,
         val successCount: Int,
         val failedCount: Int,

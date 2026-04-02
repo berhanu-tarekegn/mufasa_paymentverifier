@@ -16,6 +16,9 @@ class SmsRepositoryImpl(
     override suspend fun saveSms(sms: SmsMessage): Result<Long> {
         return try {
             val id = smsMessageDao.insert(sms.toEntity())
+            if (id == -1L) {
+                Timber.w("Duplicate SMS detected, skipping save: ${sms.sender}")
+            }
             Result.success(id)
         } catch (e: Exception) {
             Timber.e(e, "Error saving SMS")
@@ -30,6 +33,16 @@ class SmsRepositoryImpl(
         } catch (e: Exception) {
             Timber.e(e, "Error getting SMS by ID")
             Result.error(e, "Failed to get SMS")
+        }
+    }
+
+    override suspend fun deleteSms(id: Long): Result<Unit> {
+        return try {
+            smsMessageDao.deleteById(id)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "Error deleting SMS")
+            Result.error(e, "Failed to delete SMS")
         }
     }
 
@@ -95,11 +108,34 @@ class SmsRepositoryImpl(
 
     override fun getForwardedCountFlow(): Flow<Int> = smsMessageDao.countForwardedFlow()
 
+    override fun getAmountSumBetweenFlow(startTime: Long, endTime: Long): Flow<Double> =
+        smsMessageDao.sumAmountBetweenFlow(startTime, endTime)
+
+    override suspend fun getCountBySender(sender: String): Result<Int> {
+        return try {
+            Result.success(smsMessageDao.countBySender(sender))
+        } catch (e: Exception) {
+            Timber.e(e, "Error counting SMS by sender")
+            Result.error(e, "Failed to count sender messages")
+        }
+    }
+
+    override suspend fun getLatestTimestampBySender(sender: String): Result<Long?> {
+        return try {
+            Result.success(smsMessageDao.getLatestTimestampBySender(sender))
+        } catch (e: Exception) {
+            Timber.e(e, "Error getting latest SMS timestamp by sender")
+            Result.error(e, "Failed to get latest sender timestamp")
+        }
+    }
+
     private fun SmsMessage.toEntity() = SmsMessageEntity(
         id = id,
         sender = sender,
         message = message,
         timestamp = timestamp,
+        amount = amount,
+        transactionId = transactionId,
         rawJson = rawJson,
         isForwarded = isForwarded,
         forwardedAt = forwardedAt
@@ -110,6 +146,8 @@ class SmsRepositoryImpl(
         sender = sender,
         message = message,
         timestamp = timestamp,
+        amount = amount,
+        transactionId = transactionId,
         rawJson = rawJson,
         isForwarded = isForwarded,
         forwardedAt = forwardedAt

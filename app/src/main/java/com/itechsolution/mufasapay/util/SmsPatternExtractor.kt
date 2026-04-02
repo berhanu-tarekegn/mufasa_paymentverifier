@@ -14,6 +14,13 @@ import java.util.regex.PatternSyntaxException
  */
 object SmsPatternExtractor {
 
+    data class ParsedMatch(
+        val pattern: String,
+        val values: Map<String, String>,
+        val amount: Double?,
+        val transactionId: String?
+    )
+
     // Matches amounts like: 1500, 1,500, 1500.00, 1,500.00
     val receiveKeywords = listOf(
         "received", "credited", "deposit", "added",
@@ -79,19 +86,20 @@ object SmsPatternExtractor {
      * Converts a user-defined pattern with placeholders into a valid Regex.
      * For example, "Dear {name}, you received {amount}" becomes a functional regex.
      */
-    private fun convertToRegex(pattern: String): Regex {
+    private fun compilePattern(pattern: String): Pair<Regex, List<String>> {
         val placeholders = mapOf(
-            "{name}" to "(.+?)",
-            "{amount}" to """([\d,]+\.?\d*)""",
-            "{account}" to """([\d\*]+)""",
-            "{phone}" to """(\+?[\d\*]+)""",
-            "{datetime}" to "(.+?)",
-            "{transaction}" to """([\w\*]+)""",
-            "{balance}" to """([\d,]+\.?\d*)""",
-            "{ignore}" to "(.*?)"
+            "{name}" to """.+?""",
+            "{amount}" to """[\d,]+(?:\.\d+)?""",
+            "{account}" to """[\d\*]+""",
+            "{phone}" to """\+?[\d\*]+""",
+            "{datetime}" to """.+?""",
+            "{transaction}" to """[\w\*]+""",
+            "{balance}" to """[\d,]+(?:\.\d+)?""",
+            "{ignore}" to """.*?"""
         )
 
         val resultRegex = StringBuilder()
+        val placeholderOrder = mutableListOf<String>()
         var currentIdx = 0
 
         // Find all placeholder occurrences
@@ -113,7 +121,10 @@ object SmsPatternExtractor {
                 resultRegex.append(Regex.escape(pattern.substring(currentIdx, idx)))
             }
             // Append the regex for the placeholder
+            resultRegex.append("(")
             resultRegex.append(placeholders[placeholder])
+            resultRegex.append(")")
+            placeholderOrder.add(placeholder.removePrefix("{").removeSuffix("}"))
             currentIdx = idx + placeholder.length
         }
 
@@ -123,8 +134,13 @@ object SmsPatternExtractor {
         }
 
         // Using DOT_MATCHES_ALL to allow '.' to match newline characters like '\n'
-        return Regex(resultRegex.toString(), setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        return Regex(
+            resultRegex.toString(),
+            setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+        ) to placeholderOrder
     }
+
+    private fun convertToRegex(pattern: String): Regex = compilePattern(pattern).first
 
     /**
      * Checks if a message matches a sender's pattern.
@@ -145,5 +161,56 @@ object SmsPatternExtractor {
         } else {
             MONEY_RECEIVED_REGEX.containsMatchIn(message)
         }
+    }
+
+    /**
+     * Checks if a message matches ANY of the provided patterns.
+     * Returns true if at least one pattern matches.
+     */
+    fun matchesAnyPattern(message: String, patterns: List<String>): Boolean {
+        return patterns
+            .asSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .any { pattern -> matchesPattern(message, pattern) }
+    }
+
+    fun extractMatch(message: String, pattern: String): ParsedMatch? {
+        return try {
+            val (regex, placeholderOrder) = compilePattern(pattern)
+            val match = regex.find(message) ?: return null
+            val values = mutableMapOf<String, String>()
+
+            placeholderOrder.forEachIndexed { index, placeholder ->
+                val value = match.groupValues.getOrNull(index + 1)?.trim().orEmpty()
+                if (value.isNotEmpty() && placeholder !in values) {
+                    values[placeholder] = value
+                }
+            }
+
+            ParsedMatch(
+                pattern = pattern,
+                values = values,
+                amount = values["amount"]?.let(::normalizeAmount),
+                transactionId = values["transaction"]
+            )
+        } catch (e: PatternSyntaxException) {
+            Timber.e(e, "Invalid pattern syntax during extraction: $pattern")
+            null
+        }
+    }
+
+    fun extractFirstMatch(message: String, patterns: List<String>): ParsedMatch? {
+        return patterns
+            .asSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .mapNotNull { extractMatch(message, it) }
+            .firstOrNull()
+    }
+
+    private fun normalizeAmount(rawAmount: String): Double? {
+        val normalized = rawAmount.replace(",", "")
+        return normalized.toDoubleOrNull()
     }
 }

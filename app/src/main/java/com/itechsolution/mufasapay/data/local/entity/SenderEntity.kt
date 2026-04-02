@@ -16,8 +16,6 @@ data class SenderEntity(
 
     val displayName: String,
 
-    val pattern: String? = null,
-
     val isEnabled: Boolean = true,
 
     val addedAt: Long,

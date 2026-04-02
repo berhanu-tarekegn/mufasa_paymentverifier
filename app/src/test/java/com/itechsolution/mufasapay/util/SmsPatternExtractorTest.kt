@@ -1,5 +1,7 @@
 package com.itechsolution.mufasapay.util
 
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -49,5 +51,39 @@ class SmsPatternExtractorTest {
         
         val isMatch = SmsPatternExtractor.matchesPattern(message, pattern)
         assertTrue("Should match masked account", isMatch)
+    }
+
+    @Test
+    fun `test matches any pattern across multiple templates`() {
+        val message = "Dear birhanu, you received 42.00Br. from 0912296964 - FUAD RAHMETO SEMAN on 09/02/26 17:48,Txn ID DB9215LOOSO.Your CBE Birr account balance is 217.00Br. Thank you!"
+        val patterns = listOf(
+            "Account {account} Debited by ETB {amount}",
+            "Dear {name}, you received {amount}Br. from {ignore} on {datetime},Txn ID {transaction}.Your CBE Birr account balance is {balance}Br.{ignore}"
+        )
+
+        val isMatch = SmsPatternExtractor.matchesAnyPattern(message, patterns)
+
+        assertTrue("Message should match at least one configured template", isMatch)
+    }
+
+    @Test
+    fun `test extract amount and transaction from matched template`() {
+        val message = "Dear birhanu, you received 42.00Br. from 0912296964 - FUAD RAHMETO SEMAN on 09/02/26 17:48,Txn ID DB9215LOOSO.Your CBE Birr account balance is 217.00Br. Thank you!"
+        val pattern = "Dear {name}, you received {amount}Br. from {ignore} on {datetime},Txn ID {transaction}.Your CBE Birr account balance is {balance}Br.{ignore}"
+
+        val parsedMatch = SmsPatternExtractor.extractMatch(message, pattern)
+
+        assertNotNull("Pattern should extract structured fields", parsedMatch)
+        assertEquals(42.0, parsedMatch?.amount ?: 0.0, 0.0001)
+        assertEquals("DB9215LOOSO", parsedMatch?.transactionId)
+    }
+
+    @Test
+    fun `test empty template list does not match`() {
+        val message = "You have received ETB 100.00 from Abebe"
+
+        val isMatch = SmsPatternExtractor.matchesAnyPattern(message, emptyList())
+
+        assertFalse("Empty template list should not match", isMatch)
     }
 }

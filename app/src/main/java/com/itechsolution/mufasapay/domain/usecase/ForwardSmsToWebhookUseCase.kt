@@ -1,11 +1,9 @@
 package com.itechsolution.mufasapay.domain.usecase
 
 import android.content.Context
-import android.os.Build
 import com.itechsolution.mufasapay.BuildConfig
 import com.itechsolution.mufasapay.data.remote.WebhookClientFactory
-import com.itechsolution.mufasapay.data.remote.dto.Metadata
-import com.itechsolution.mufasapay.data.remote.dto.SmsData
+import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookData
 import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookPayload
 import com.itechsolution.mufasapay.data.worker.SmsForwardWorker
 import com.itechsolution.mufasapay.domain.model.DeliveryLog
@@ -13,16 +11,16 @@ import com.itechsolution.mufasapay.domain.model.DeliveryStatus
 import com.itechsolution.mufasapay.domain.model.SmsMessage
 import com.itechsolution.mufasapay.domain.model.WebhookConfig
 import com.itechsolution.mufasapay.domain.repository.DeliveryRepository
+import com.itechsolution.mufasapay.domain.repository.SenderRepository
 import com.itechsolution.mufasapay.domain.repository.SmsRepository
 import com.itechsolution.mufasapay.domain.repository.WebhookRepository
-import com.itechsolution.mufasapay.util.Constants
 import com.itechsolution.mufasapay.util.DateTimeUtils
 import com.itechsolution.mufasapay.util.Result
+import com.itechsolution.mufasapay.util.WebhookUrlResolver
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.security.MessageDigest
 
 /**
  * Use case for forwarding SMS to webhook endpoint
@@ -34,6 +32,7 @@ class ForwardSmsToWebhookUseCase(
     private val webhookRepository: WebhookRepository,
     private val deliveryRepository: DeliveryRepository,
     private val smsRepository: SmsRepository,
+    private val senderRepository: SenderRepository,
     private val webhookClientFactory: WebhookClientFactory,
     private val moshi: Moshi
 ) {
@@ -166,12 +165,11 @@ class ForwardSmsToWebhookUseCase(
             val headers = buildHeaders(config)
 
             // Make request based on HTTP method
-            val response = when (config.method.uppercase()) {
-                Constants.HTTP_METHOD_POST -> apiService.forwardSmsPost(config.url, headers, payload)
-                Constants.HTTP_METHOD_PUT -> apiService.forwardSmsPut(config.url, headers, payload)
-                Constants.HTTP_METHOD_PATCH -> apiService.forwardSmsPatch(config.url, headers, payload)
-                else -> apiService.forwardSmsPost(config.url, headers, payload)
-            }
+            val response = apiService.forwardSmsPost(
+                WebhookUrlResolver.uploadUrl(config.url),
+                headers,
+                payload
+            )
 
             if (response.isSuccessful) {
                 val body = response.body()?.string() ?: ""
@@ -200,21 +198,21 @@ class ForwardSmsToWebhookUseCase(
     /**
      * Builds the webhook payload from SMS message
      */
-    private fun buildPayload(sms: SmsMessage): SmsWebhookPayload {
+    private suspend fun buildPayload(sms: SmsMessage): SmsWebhookPayload {
+        val amount = sms.amount
+            ?: throw IllegalStateException("Cannot build webhook payload without parsed amount")
+        val transactionId = sms.transactionId
+            ?: throw IllegalStateException("Cannot build webhook payload without parsed transaction ID")
+        val provider = senderRepository.getSenderById(sms.sender).getOrNull()?.displayName
+            ?.takeIf { it.isNotBlank() }
+            ?: sms.sender
+
         return SmsWebhookPayload(
-            event = Constants.WEBHOOK_EVENT_SMS_RECEIVED,
-            timestamp = System.currentTimeMillis(),
-            data = SmsData(
+            data = SmsWebhookData(
                 sender = sms.sender,
-                message = sms.message,
-                receivedAt = sms.timestamp,
-                originalFormat = sms.rawJson
-            ),
-            metadata = Metadata(
-                deviceId = getDeviceId(),
-                appVersion = BuildConfig.VERSION_NAME,
-                sdkVersion = Build.VERSION.SDK_INT,
-                forwardedAt = System.currentTimeMillis()
+                provider = provider,
+                amount = amount,
+                transactionId = transactionId
             )
         )
     }
@@ -235,20 +233,6 @@ class ForwardSmsToWebhookUseCase(
         headers.putAll(config.headers)
 
         return headers
-    }
-
-    /**
-     * Generates a hashed device ID for privacy
-     */
-    private fun getDeviceId(): String {
-        return try {
-            val value = "${Build.MANUFACTURER}_${Build.MODEL}_${Build.DEVICE}"
-            val digest = MessageDigest.getInstance("SHA-256")
-            val hash = digest.digest(value.toByteArray())
-            hash.joinToString("") { "%02x".format(it) }.take(16)
-        } catch (e: Exception) {
-            "unknown_device"
-        }
     }
 
     /**

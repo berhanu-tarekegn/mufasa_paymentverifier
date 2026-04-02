@@ -81,7 +81,7 @@ class WebhookConfigViewModel(
             getWebhookConfigUseCase().collect { config ->
                 config?.let {
                     _url.value = it.url
-                    _method.value = it.method
+                    _method.value = "POST"
                     _headers.value = it.headers
                     _authType.value = it.authType
                     _authValue.value = it.authValue ?: ""

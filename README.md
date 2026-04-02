@@ -7,14 +7,14 @@ Built for the Ethiopian financial ecosystem — supports CBE Birr, Telebirr, M-P
 ## How It Works
 
 ```
-SMS Received → Sender Whitelisted? → Matches Money Pattern? → Save to DB → Forward to Webhook
-                      ↓ No                    ↓ No                              ↓ Failed
-                   Discard                  Discard                      Retry via WorkManager
+SMS Received → Sender Enabled? → Matches Any Enabled Template? → Save to DB → Forward to Webhook
+                   ↓ No                    ↓ No / No Template                    ↓ Failed
+                Discard                         Discard                   Retry via WorkManager
 ```
 
 1. A `BroadcastReceiver` (priority 999) intercepts incoming SMS — non-invasively, the SMS still reaches the default SMS app
 2. A foreground service validates the sender against a whitelist
-3. The message body is checked against a configurable pattern (or a built-in "money received" fallback)
+3. The message body is checked against the enabled templates configured for that sender
 4. Matching messages are saved to a local Room database
 5. A webhook payload is built and sent to your configured endpoint via Retrofit
 6. On failure, WorkManager schedules retries with exponential backoff
@@ -23,7 +23,7 @@ SMS Received → Sender Whitelisted? → Matches Money Pattern? → Save to DB �
 ## Features
 
 - **Sender Whitelisting** — only process SMS from configured senders
-- **Pattern Matching** — filter for "money received" messages using extracted patterns from sample messages
+- **Multi-Template Matching** — attach multiple message templates to each sender and match against any enabled template
 - **Webhook Forwarding** — POST/PUT/PATCH to any endpoint with Bearer, Basic, API Key, or no auth
 - **Retry Logic** — automatic retries with exponential backoff via WorkManager
 - **Delivery Tracking** — full audit trail with status (PENDING, SUCCESS, FAILED, RETRYING), HTTP response codes, and duration
@@ -128,6 +128,7 @@ The app requests these permissions at runtime:
 | `INTERNET` | Forward messages to webhook endpoint |
 | `POST_NOTIFICATIONS` | Show foreground service and delivery notifications |
 | `FOREGROUND_SERVICE` | Background SMS processing |
+| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Prompt user to exempt the app from aggressive battery restrictions |
 
 ## Webhook Configuration
 
@@ -172,23 +173,25 @@ When a webhook call fails:
 
 ## Database Schema
 
-Four Room tables with reactive Flow queries:
+Five Room tables with reactive Flow queries:
 
 | Table | Purpose |
 |---|---|
 | `sms_messages` | Stored SMS with forwarding status |
-| `senders` | Whitelisted senders with patterns |
+| `senders` | Whitelisted senders |
+| `sender_templates` | Multiple templates per sender |
 | `webhook_config` | Singleton webhook configuration |
 | `delivery_logs` | Delivery attempt audit trail (FK to sms_messages) |
 
-Indexes on `timestamp`, `sender`, `isForwarded`, `status` for query performance. Delivery logs cascade-delete when their parent SMS is removed.
+Indexes on `timestamp`, `sender`, `isForwarded`, `status`, and the SMS uniqueness key support query performance and duplicate suppression. Sender templates cascade-delete with their parent sender.
 
 ## Pattern Matching
 
-The app filters SMS to only forward "money received" messages:
+The app filters SMS using sender-specific templates:
 
-1. **Per-sender pattern** — Users paste a sample received-money SMS, and the app extracts the opening phrase (e.g., `"You have received ETB"`) as a matching pattern
-2. **Fallback detection** — If no pattern is configured, a built-in regex matches common keywords: `received`, `credited`, `deposited`, `transferred to you`, etc.
+1. **Per-sender templates** — Each sender can have multiple labeled templates, and an SMS is accepted when it matches any enabled template
+2. **Placeholder support** — Templates support placeholders such as `{name}`, `{amount}`, `{account}`, `{transaction}`, `{datetime}`, `{balance}`, and `{ignore}`
+3. **Sample-based bootstrapping** — Users can paste a sample SMS and auto-generate a starter template, then refine it manually
 
 The `SmsPatternExtractor` utility handles both extraction and matching.
 

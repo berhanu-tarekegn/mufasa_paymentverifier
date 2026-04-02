@@ -148,6 +148,11 @@ class SmsForwardWorker(
 
         val retryWorkRequest = OneTimeWorkRequestBuilder<SmsForwardWorker>()
             .setInputData(inputData)
+            .setConstraints(
+                androidx.work.Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                    .build()
+            )
             .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
             .addTag(Constants.SMS_FORWARD_WORKER_TAG)
             .build()
@@ -168,6 +173,11 @@ class SmsForwardWorker(
 
             val retryWorkRequest = OneTimeWorkRequestBuilder<SmsForwardWorker>()
                 .setInputData(inputData)
+                .setConstraints(
+                    androidx.work.Constraints.Builder()
+                        .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                        .build()
+                )
                 .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
                 .addTag(Constants.SMS_FORWARD_WORKER_TAG)
                 .build()

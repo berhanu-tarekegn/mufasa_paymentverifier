@@ -43,27 +43,56 @@ class ProcessIncomingSmsUseCase(
 
             if (isWhitelisted.getOrNull() != true) {
                 Timber.d("Sender not whitelisted, discarding SMS: $sender")
-                return@withContext Result.error("Sender not whitelisted")
+                return@withContext Result.success(Unit)
             }
 
             Timber.i("Sender whitelisted, processing SMS: $sender")
 
-            // 1.5 Check if message matches money-received pattern
+            // 1.5 Check if message matches any sender template
             val senderResult = senderRepository.getSenderById(sender)
-            val senderPattern = senderResult.getOrNull()?.pattern
-
-            if (!SmsPatternExtractor.matchesPattern(message, senderPattern)) {
-                Timber.d("Message does not match money-received pattern, skipping: $sender")
-                return@withContext Result.error("Message does not match money-received pattern")
+            if (senderResult.isError) {
+                Timber.e("Failed to load sender details: ${senderResult.exceptionOrNull()}")
+                return@withContext Result.error("Failed to load sender configuration")
             }
 
-            Timber.i("Message matches pattern, continuing processing")
+            val senderData = senderResult.getOrNull()
+            if (senderData == null) {
+                Timber.w("Sender was whitelisted but not found in repository: $sender")
+                return@withContext Result.error("Sender configuration is missing")
+            }
+
+            // Get enabled template patterns for this sender
+            val templatePatterns = senderData.templates
+                .filter { it.isEnabled }
+                .map { it.pattern }
+
+            if (templatePatterns.isEmpty()) {
+                Timber.i("No enabled templates configured for sender, skipping: $sender")
+                return@withContext Result.success(Unit)
+            }
+
+            val parsedMatch = SmsPatternExtractor.extractFirstMatch(message, templatePatterns)
+            if (parsedMatch == null) {
+                Timber.d("Message does not match any template pattern, skipping: $sender")
+                return@withContext Result.success(Unit)
+            }
+
+            val parsedAmount = parsedMatch.amount
+            val parsedTransactionId = parsedMatch.transactionId?.trim()
+            if (parsedAmount == null || parsedTransactionId.isNullOrBlank()) {
+                Timber.w("Matched template did not extract required amount/transaction fields for sender: $sender")
+                return@withContext Result.error("Matched template must extract both amount and transaction ID")
+            }
+
+            Timber.i("Message matches template and extracted amount/transaction, continuing processing")
 
             // 2. Save SMS to database
             val sms = SmsMessage(
                 sender = sender,
                 message = message,
                 timestamp = timestamp,
+                amount = parsedAmount,
+                transactionId = parsedTransactionId,
                 isForwarded = false
             )
 
@@ -74,6 +103,10 @@ class ProcessIncomingSmsUseCase(
             }
 
             val smsId = saveSmsResult.getOrNull() ?: 0L
+            if (smsId == -1L) {
+                Timber.i("SMS already processed, skipping duplicate: $sender")
+                return@withContext Result.success(Unit)
+            }
             Timber.d("SMS saved with ID: $smsId")
 
             // 3. Update sender statistics

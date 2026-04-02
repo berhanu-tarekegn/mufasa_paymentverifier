@@ -21,6 +21,7 @@ val viewModelModule = module {
     viewModel {
         ProviderSelectionViewModel(
             addSenderUseCase = get(),
+            senderRepository = get(),
             preferencesManager = get()
         )
     }
@@ -57,7 +58,8 @@ val viewModelModule = module {
     viewModel {
         SmsHistoryViewModel(
             getSmsHistoryUseCase = get(),
-            retryFailedDeliveryUseCase = get()
+            retryFailedDeliveryUseCase = get(),
+            deleteSmsTransactionUseCase = get()
         )
     }
 }

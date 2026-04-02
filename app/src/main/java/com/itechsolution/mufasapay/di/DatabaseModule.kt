@@ -1,4 +1,5 @@
 package com.itechsolution.mufasapay.di
+
 import androidx.room.Room
 import com.itechsolution.mufasapay.data.local.AppDatabase
 import com.itechsolution.mufasapay.util.Constants
@@ -13,13 +14,14 @@ val databaseModule = module {
             AppDatabase::class.java,
             Constants.DATABASE_NAME
         )
-            .fallbackToDestructiveMigration() // For development; use proper migrations in production
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
             .build()
     }
 
     // DAOs
     single { get<AppDatabase>().smsMessageDao() }
     single { get<AppDatabase>().senderDao() }
+    single { get<AppDatabase>().senderTemplateDao() }
     single { get<AppDatabase>().webhookConfigDao() }
     single { get<AppDatabase>().deliveryLogDao() }
 }

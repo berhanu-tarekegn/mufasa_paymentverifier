@@ -12,7 +12,7 @@ import org.koin.dsl.module
 
 val repositoryModule = module {
     single<SmsRepository> { SmsRepositoryImpl(get()) }
-    single<SenderRepository> { SenderRepositoryImpl(get()) }
+    single<SenderRepository> { SenderRepositoryImpl(get(), get()) }
     single<WebhookRepository> { WebhookRepositoryImpl(get(), get()) }
     single<DeliveryRepository> { DeliveryRepositoryImpl(get()) }
 }

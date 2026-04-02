@@ -3,6 +3,7 @@ package com.itechsolution.mufasapay.di
 import com.itechsolution.mufasapay.domain.usecase.ForwardSmsToWebhookUseCase
 import com.itechsolution.mufasapay.domain.usecase.ProcessIncomingSmsUseCase
 import com.itechsolution.mufasapay.domain.usecase.dashboard.GetDeliveryStatsUseCase
+import com.itechsolution.mufasapay.domain.usecase.history.DeleteSmsTransactionUseCase
 import com.itechsolution.mufasapay.domain.usecase.history.GetSmsHistoryUseCase
 import com.itechsolution.mufasapay.domain.usecase.history.RetryFailedDeliveryUseCase
 import com.itechsolution.mufasapay.domain.usecase.sender.AddSenderUseCase
@@ -22,7 +23,7 @@ val appModule = module {
     single { PreferencesManager(androidContext()) }
 
     // Core use cases
-    factory { ForwardSmsToWebhookUseCase(androidContext(), get(), get(), get(), get(), get()) }
+    factory { ForwardSmsToWebhookUseCase(androidContext(), get(), get(), get(), get(), get(), get()) }
     factory { ProcessIncomingSmsUseCase(get(), get(), get()) }
 
     // Sender management use cases
@@ -40,4 +41,5 @@ val appModule = module {
     factory { GetDeliveryStatsUseCase(get(), get(), get()) }
     factory { GetSmsHistoryUseCase(get()) }
     factory { RetryFailedDeliveryUseCase(get(), get()) }
+    factory { DeleteSmsTransactionUseCase(get(), get(), get(), get()) }
 }

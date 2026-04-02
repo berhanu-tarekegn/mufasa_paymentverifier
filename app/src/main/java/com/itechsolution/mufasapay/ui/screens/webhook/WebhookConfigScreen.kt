@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -53,6 +53,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun WebhookConfigScreen(
     onNavigateBack: () -> Unit,
+    showTopBar: Boolean = true,
     viewModel: WebhookConfigViewModel = koinViewModel()
 ) {
     val url by viewModel.url.collectAsState()
@@ -90,17 +91,19 @@ fun WebhookConfigScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Webhook Configuration") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                ),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+            if (showTopBar) {
+                TopAppBar(
+                    title = { Text("Webhook Configuration") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    ),
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
-                }
-            )
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -132,8 +135,9 @@ fun WebhookConfigScreen(
             OutlinedTextField(
                 value = url,
                 onValueChange = { viewModel.updateUrl(it) },
-                label = { Text("Webhook URL") },
-                placeholder = { Text("https://example.com/webhook") },
+                label = { Text("Webhook Base URL") },
+                placeholder = { Text("https://example.com") },
+                supportingText = { Text("Uploads use POST /v1/transactions. Deletes use DELETE /v1/transactions/{transaction_id}.") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = isEnabled
             )
@@ -159,7 +163,7 @@ fun WebhookConfigScreen(
                     expanded = methodExpanded,
                     onDismissRequest = { methodExpanded = false }
                 ) {
-                    listOf("POST", "PUT", "PATCH").forEach { item ->
+                    listOf("POST").forEach { item ->
                         DropdownMenuItem(
                             text = { Text(item) },
                             onClick = {
