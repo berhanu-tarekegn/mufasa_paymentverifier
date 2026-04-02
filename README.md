@@ -24,7 +24,7 @@ SMS Received → Sender Enabled? → Matches Any Enabled Template? → Save to D
 
 - **Sender Whitelisting** — only process SMS from configured senders
 - **Multi-Template Matching** — attach multiple message templates to each sender and match against any enabled template
-- **Webhook Forwarding** — POST/PUT/PATCH to any endpoint with Bearer, Basic, API Key, or no auth
+- **Webhook Forwarding** — POST upload and DELETE removal endpoints with Bearer, Basic, API Key, or no auth
 - **Retry Logic** — automatic retries with exponential backoff via WorkManager
 - **Delivery Tracking** — full audit trail with status (PENDING, SUCCESS, FAILED, RETRYING), HTTP response codes, and duration
 - **Real-time Dashboard** — reactive stats powered by Room Flows

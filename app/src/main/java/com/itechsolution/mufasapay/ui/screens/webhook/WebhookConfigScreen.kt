@@ -56,8 +56,8 @@ fun WebhookConfigScreen(
     showTopBar: Boolean = true,
     viewModel: WebhookConfigViewModel = koinViewModel()
 ) {
-    val url by viewModel.url.collectAsState()
-    val method by viewModel.method.collectAsState()
+    val uploadUrl by viewModel.uploadUrl.collectAsState()
+    val deleteUrlTemplate by viewModel.deleteUrlTemplate.collectAsState()
     val headers by viewModel.headers.collectAsState()
     val authType by viewModel.authType.collectAsState()
     val authValue by viewModel.authValue.collectAsState()
@@ -131,49 +131,26 @@ fun WebhookConfigScreen(
                 )
             }
 
-            // URL
+            // Upload URL
             OutlinedTextField(
-                value = url,
-                onValueChange = { viewModel.updateUrl(it) },
-                label = { Text("Webhook Base URL") },
-                placeholder = { Text("https://example.com") },
-                supportingText = { Text("Uploads use POST /v1/transactions. Deletes use DELETE /v1/transactions/{transaction_id}.") },
+                value = uploadUrl,
+                onValueChange = { viewModel.updateUploadUrl(it) },
+                label = { Text("Upload URL") },
+                placeholder = { Text("https://example.com/v1/transactions") },
+                supportingText = { Text("The app will POST new SMS transactions to this endpoint.") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = isEnabled
             )
 
-            // Method dropdown
-            var methodExpanded by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = methodExpanded,
-                onExpandedChange = { methodExpanded = it && isEnabled }
-            ) {
-                OutlinedTextField(
-                    value = method,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("HTTP Method") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = methodExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(),
-                    enabled = isEnabled
-                )
-                ExposedDropdownMenu(
-                    expanded = methodExpanded,
-                    onDismissRequest = { methodExpanded = false }
-                ) {
-                    listOf("POST").forEach { item ->
-                        DropdownMenuItem(
-                            text = { Text(item) },
-                            onClick = {
-                                viewModel.updateMethod(item)
-                                methodExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
+            OutlinedTextField(
+                value = deleteUrlTemplate,
+                onValueChange = { viewModel.updateDeleteUrlTemplate(it) },
+                label = { Text("Delete URL Template") },
+                placeholder = { Text("https://example.com/v1/transactions/{transaction_id}") },
+                supportingText = { Text("Include {transaction_id}. The app will replace it before sending DELETE requests.") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = isEnabled
+            )
 
             // Headers section
             Text(
@@ -189,37 +166,11 @@ fun WebhookConfigScreen(
             )
 
             // Auth type dropdown
-            var authTypeExpanded by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = authTypeExpanded,
-                onExpandedChange = { authTypeExpanded = it && isEnabled }
-            ) {
-                OutlinedTextField(
-                    value = authType,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Authentication Type") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = authTypeExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(),
-                    enabled = isEnabled
-                )
-                ExposedDropdownMenu(
-                    expanded = authTypeExpanded,
-                    onDismissRequest = { authTypeExpanded = false }
-                ) {
-                    listOf("NONE", "BEARER", "BASIC", "API_KEY").forEach { item ->
-                        DropdownMenuItem(
-                            text = { Text(item) },
-                            onClick = {
-                                viewModel.updateAuthType(item)
-                                authTypeExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
+            AuthenticationTypeField(
+                authType = authType,
+                onAuthTypeSelected = viewModel::updateAuthType,
+                enabled = isEnabled
+            )
 
             // Auth value (show only if not NONE)
             if (authType != "NONE") {
@@ -314,7 +265,7 @@ fun WebhookConfigScreen(
             ) {
                 OutlinedButton(
                     onClick = { viewModel.testConnection() },
-                    enabled = url.isNotBlank() && !isTesting && isEnabled,
+                    enabled = uploadUrl.isNotBlank() && deleteUrlTemplate.isNotBlank() && !isTesting && isEnabled,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (isTesting) "Testing..." else "Test")
@@ -322,11 +273,54 @@ fun WebhookConfigScreen(
 
                 Button(
                     onClick = { viewModel.saveConfig() },
-                    enabled = url.isNotBlank() && !isSaving,
+                    enabled = uploadUrl.isNotBlank() && deleteUrlTemplate.isNotBlank() && !isSaving,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (isSaving) "Saving..." else "Save")
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AuthenticationTypeField(
+    authType: String,
+    onAuthTypeSelected: (String) -> Unit,
+    enabled: Boolean
+) {
+    var authTypeExpanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = authTypeExpanded,
+        onExpandedChange = { authTypeExpanded = it && enabled }
+    ) {
+        OutlinedTextField(
+            value = authType,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Authentication Type") },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = authTypeExpanded)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
+            enabled = enabled
+        )
+        ExposedDropdownMenu(
+            expanded = authTypeExpanded,
+            onDismissRequest = { authTypeExpanded = false }
+        ) {
+            listOf("NONE", "BEARER", "BASIC", "API_KEY").forEach { item ->
+                DropdownMenuItem(
+                    text = { Text(item) },
+                    onClick = {
+                        onAuthTypeSelected(item)
+                        authTypeExpanded = false
+                    }
+                )
             }
         }
     }

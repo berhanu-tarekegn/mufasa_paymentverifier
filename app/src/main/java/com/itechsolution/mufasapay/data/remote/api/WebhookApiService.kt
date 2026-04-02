@@ -5,9 +5,7 @@ import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.HTTP
 import retrofit2.http.HeaderMap
-import retrofit2.http.PATCH
 import retrofit2.http.POST
-import retrofit2.http.PUT
 import retrofit2.http.Url
 
 /**
@@ -18,20 +16,6 @@ interface WebhookApiService {
 
     @POST
     suspend fun forwardSmsPost(
-        @Url url: String,
-        @HeaderMap headers: Map<String, String>,
-        @retrofit2.http.Body payload: SmsWebhookPayload
-    ): Response<ResponseBody>
-
-    @PUT
-    suspend fun forwardSmsPut(
-        @Url url: String,
-        @HeaderMap headers: Map<String, String>,
-        @retrofit2.http.Body payload: SmsWebhookPayload
-    ): Response<ResponseBody>
-
-    @PATCH
-    suspend fun forwardSmsPatch(
         @Url url: String,
         @HeaderMap headers: Map<String, String>,
         @retrofit2.http.Body payload: SmsWebhookPayload

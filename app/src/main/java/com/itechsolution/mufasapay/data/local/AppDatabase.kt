@@ -23,7 +23,7 @@ import com.itechsolution.mufasapay.data.local.entity.WebhookConfigEntity
         DeliveryLogEntity::class,
         SenderTemplateEntity::class
     ],
-    version = 3,
+    version = 5,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -104,6 +104,137 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `sms_messages` ADD COLUMN `amount` REAL")
                 db.execSQL("ALTER TABLE `sms_messages` ADD COLUMN `transactionId` TEXT")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `webhook_config_new` (
+                        `id` INTEGER NOT NULL,
+                        `uploadUrl` TEXT NOT NULL,
+                        `deleteUrlTemplate` TEXT NOT NULL,
+                        `method` TEXT NOT NULL,
+                        `headers` TEXT NOT NULL,
+                        `authType` TEXT NOT NULL,
+                        `authValue` TEXT,
+                        `timeout` INTEGER NOT NULL,
+                        `retryEnabled` INTEGER NOT NULL,
+                        `maxRetries` INTEGER NOT NULL,
+                        `retryDelayMs` INTEGER NOT NULL,
+                        `isEnabled` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """
+                )
+
+                db.execSQL(
+                    """
+                    INSERT INTO `webhook_config_new` (
+                        `id`,
+                        `uploadUrl`,
+                        `deleteUrlTemplate`,
+                        `method`,
+                        `headers`,
+                        `authType`,
+                        `authValue`,
+                        `timeout`,
+                        `retryEnabled`,
+                        `maxRetries`,
+                        `retryDelayMs`,
+                        `isEnabled`,
+                        `updatedAt`
+                    )
+                    SELECT
+                        `id`,
+                        CASE
+                            WHEN TRIM(`url`) = '' THEN ''
+                            WHEN RTRIM(`url`, '/') LIKE '%/v1/transactions' THEN RTRIM(`url`, '/')
+                            ELSE RTRIM(`url`, '/') || '/v1/transactions'
+                        END,
+                        CASE
+                            WHEN TRIM(`url`) = '' THEN ''
+                            WHEN RTRIM(`url`, '/') LIKE '%/v1/transactions' THEN RTRIM(`url`, '/') || '/{transaction_id}'
+                            ELSE RTRIM(`url`, '/') || '/v1/transactions/{transaction_id}'
+                        END,
+                        `method`,
+                        `headers`,
+                        `authType`,
+                        `authValue`,
+                        `timeout`,
+                        `retryEnabled`,
+                        `maxRetries`,
+                        `retryDelayMs`,
+                        `isEnabled`,
+                        `updatedAt`
+                    FROM `webhook_config`
+                    """
+                )
+
+                db.execSQL("DROP TABLE `webhook_config`")
+                db.execSQL("ALTER TABLE `webhook_config_new` RENAME TO `webhook_config`")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `webhook_config_new` (
+                        `id` INTEGER NOT NULL,
+                        `uploadUrl` TEXT NOT NULL,
+                        `deleteUrlTemplate` TEXT NOT NULL,
+                        `headers` TEXT NOT NULL,
+                        `authType` TEXT NOT NULL,
+                        `authValue` TEXT,
+                        `timeout` INTEGER NOT NULL,
+                        `retryEnabled` INTEGER NOT NULL,
+                        `maxRetries` INTEGER NOT NULL,
+                        `retryDelayMs` INTEGER NOT NULL,
+                        `isEnabled` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """
+                )
+
+                db.execSQL(
+                    """
+                    INSERT INTO `webhook_config_new` (
+                        `id`,
+                        `uploadUrl`,
+                        `deleteUrlTemplate`,
+                        `headers`,
+                        `authType`,
+                        `authValue`,
+                        `timeout`,
+                        `retryEnabled`,
+                        `maxRetries`,
+                        `retryDelayMs`,
+                        `isEnabled`,
+                        `updatedAt`
+                    )
+                    SELECT
+                        `id`,
+                        `uploadUrl`,
+                        `deleteUrlTemplate`,
+                        `headers`,
+                        `authType`,
+                        `authValue`,
+                        `timeout`,
+                        `retryEnabled`,
+                        `maxRetries`,
+                        `retryDelayMs`,
+                        `isEnabled`,
+                        `updatedAt`
+                    FROM `webhook_config`
+                    """
+                )
+
+                db.execSQL("DROP TABLE `webhook_config`")
+                db.execSQL("ALTER TABLE `webhook_config_new` RENAME TO `webhook_config`")
             }
         }
     }

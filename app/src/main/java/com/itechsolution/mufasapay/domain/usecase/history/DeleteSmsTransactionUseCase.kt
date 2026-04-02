@@ -78,14 +78,15 @@ class DeleteSmsTransactionUseCase(
         }
 
         val config = configResult.getOrNull()
-        if (config == null || config.url.isBlank()) {
-            return Result.error("Webhook URL is not configured")
+        if (config == null || config.deleteUrlTemplate.isBlank()) {
+            return Result.error("Delete webhook URL is not configured")
         }
 
         return try {
-            val apiService = webhookClientFactory.createService(config)
+            val deleteUrl = WebhookUrlResolver.resolveDeleteUrl(config.deleteUrlTemplate, parsedTransactionId)
+            val apiService = webhookClientFactory.createService(deleteUrl, config)
             val response = apiService.deleteSms(
-                url = WebhookUrlResolver.deleteUrl(config.url, parsedTransactionId),
+                url = deleteUrl,
                 headers = buildHeaders(config)
             )
 

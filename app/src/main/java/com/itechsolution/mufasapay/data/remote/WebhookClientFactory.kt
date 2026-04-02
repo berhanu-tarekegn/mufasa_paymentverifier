@@ -23,11 +23,11 @@ class WebhookClientFactory(
     /**
      * Creates a WebhookApiService configured with the provided webhook settings
      */
-    fun createService(config: WebhookConfig): WebhookApiService {
+    fun createService(requestUrl: String, config: WebhookConfig): WebhookApiService {
         val okHttpClient = createOkHttpClient(config)
 
-        // Extract base URL from webhook URL
-        val baseUrl = extractBaseUrl(config.url)
+        // Extract base URL from the request URL
+        val baseUrl = extractBaseUrl(requestUrl)
 
         val retrofit = Retrofit.Builder()
             .baseUrl(baseUrl)
@@ -69,7 +69,7 @@ class WebhookClientFactory(
     }
 
     /**
-     * Extracts base URL from full webhook URL
+     * Extracts base URL from full request URL
      * Example: https://example.com/api/webhook -> https://example.com/
      */
     private fun extractBaseUrl(fullUrl: String): String {

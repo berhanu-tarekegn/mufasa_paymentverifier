@@ -80,8 +80,8 @@ class WebhookRepositoryImpl(
         val headersJson = headersAdapter.toJson(headers)
         return WebhookConfigEntity(
             id = id,
-            url = url,
-            method = method,
+            uploadUrl = uploadUrl,
+            deleteUrlTemplate = deleteUrlTemplate,
             headers = headersJson,
             authType = authType,
             authValue = authValue,
@@ -103,8 +103,8 @@ class WebhookRepositoryImpl(
         }
         return WebhookConfig(
             id = id,
-            url = url,
-            method = method,
+            uploadUrl = uploadUrl,
+            deleteUrlTemplate = deleteUrlTemplate,
             headers = headersMap,
             authType = authType,
             authValue = authValue,

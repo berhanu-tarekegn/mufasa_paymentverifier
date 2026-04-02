@@ -16,7 +16,6 @@ import com.itechsolution.mufasapay.domain.repository.SmsRepository
 import com.itechsolution.mufasapay.domain.repository.WebhookRepository
 import com.itechsolution.mufasapay.util.DateTimeUtils
 import com.itechsolution.mufasapay.util.Result
-import com.itechsolution.mufasapay.util.WebhookUrlResolver
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -54,8 +53,8 @@ class ForwardSmsToWebhookUseCase(
             }
 
             // 2. Validate webhook URL
-            if (config.url.isBlank()) {
-                return@withContext Result.error("Webhook URL is empty")
+            if (config.uploadUrl.isBlank()) {
+                return@withContext Result.error("Upload webhook URL is empty")
             }
 
             // 3. Build webhook payload
@@ -159,14 +158,13 @@ class ForwardSmsToWebhookUseCase(
     ): WebhookResult {
         return try {
             // Create configured API service
-            val apiService = webhookClientFactory.createService(config)
+            val apiService = webhookClientFactory.createService(config.uploadUrl, config)
 
             // Combine config headers with payload headers
             val headers = buildHeaders(config)
 
-            // Make request based on HTTP method
             val response = apiService.forwardSmsPost(
-                WebhookUrlResolver.uploadUrl(config.url),
+                config.uploadUrl,
                 headers,
                 payload
             )

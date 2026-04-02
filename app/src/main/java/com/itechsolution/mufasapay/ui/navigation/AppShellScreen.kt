@@ -82,7 +82,9 @@ fun AppShellScreen(
 
     val enabledSenderCount = senders.count { it.isEnabled }
     val enabledTemplateCount = senders.sumOf { sender -> sender.templates.count { it.isEnabled } }
-    val webhookReady = webhookConfig?.let { it.isEnabled && it.url.isNotBlank() } == true
+    val webhookReady = webhookConfig?.let {
+        it.isEnabled && it.uploadUrl.isNotBlank() && it.deleteUrlTemplate.isNotBlank()
+    } == true
     val setupReady = enabledSenderCount > 0 && enabledTemplateCount > 0 && webhookReady
 
     val destinations = listOf(
