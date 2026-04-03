@@ -22,8 +22,14 @@ import timber.log.Timber
 enum class FilterType {
     ALL,
     FORWARDED,
-    NOT_FORWARDED
+    NEEDS_ACTION
 }
+
+data class TransactionSummary(
+    val total: Int = 0,
+    val forwarded: Int = 0,
+    val needsAction: Int = 0
+)
 
 /**
  * ViewModel for SMS history screen
@@ -50,13 +56,27 @@ class SmsHistoryViewModel(
         when (filter) {
             FilterType.ALL -> messages
             FilterType.FORWARDED -> messages.filter { it.isForwarded }
-            FilterType.NOT_FORWARDED -> messages.filter { !it.isForwarded }
+            FilterType.NEEDS_ACTION -> messages.filter { !it.isForwarded }
         }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
+
+    val summary: StateFlow<TransactionSummary> = _allMessages
+        .combine(_filter) { messages, _ ->
+            TransactionSummary(
+                total = messages.size,
+                forwarded = messages.count { it.isForwarded },
+                needsAction = messages.count { !it.isForwarded }
+            )
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = TransactionSummary()
+        )
 
     init {
         loadMessages()

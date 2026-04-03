@@ -162,12 +162,12 @@ private fun DashboardContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 StatCard(
-                    label = "Total SMS",
+                    label = "Matched",
                     value = stats.totalSms.toString(),
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    label = "Forwarded",
+                    label = "Synced",
                     value = stats.forwardedSms.toString(),
                     modifier = Modifier.weight(1f)
                 )
@@ -207,12 +207,12 @@ private fun DashboardContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 StatCard(
-                    label = "Success",
+                    label = "Successful",
                     value = stats.successfulDeliveries.toString(),
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    label = "Failed",
+                    label = "Needs Review",
                     value = stats.failedDeliveries.toString(),
                     modifier = Modifier.weight(1f)
                 )
@@ -278,12 +278,12 @@ private fun DashboardContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Recent Messages",
+                    text = "Recent Transactions",
                     style = MaterialTheme.typography.titleLarge
                 )
 
                 TextButton(onClick = onNavigateToHistory) {
-                    Text("View All")
+                    Text("Open Queue")
                 }
             }
         }
@@ -393,7 +393,7 @@ private fun SetupOverviewCard(
                     ) {
                         Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("History")
+                        Text("Transactions")
                     }
                 }
             }

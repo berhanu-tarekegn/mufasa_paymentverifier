@@ -40,6 +40,6 @@ val appModule = module {
     // Dashboard and history use cases
     factory { GetDeliveryStatsUseCase(get(), get(), get()) }
     factory { GetSmsHistoryUseCase(get()) }
-    factory { RetryFailedDeliveryUseCase(get(), get()) }
+    factory { RetryFailedDeliveryUseCase(get(), get(), get()) }
     factory { DeleteSmsTransactionUseCase(get(), get(), get(), get()) }
 }

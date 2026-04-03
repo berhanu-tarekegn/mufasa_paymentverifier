@@ -13,6 +13,7 @@ import timber.log.Timber
  */
 class RetryFailedDeliveryUseCase(
     private val smsRepository: SmsRepository,
+    private val deliveryRepository: DeliveryRepository,
     private val forwardSmsToWebhookUseCase: ForwardSmsToWebhookUseCase
 ) {
     suspend operator fun invoke(smsId: Long): Result<Unit> = withContext(Dispatchers.IO) {
@@ -25,7 +26,12 @@ class RetryFailedDeliveryUseCase(
             }
 
             val sms = smsResult.getOrNull()!!
-            val result = forwardSmsToWebhookUseCase(sms)
+            val latestLogId = deliveryRepository.getLogsBySmsId(smsId)
+                .getOrNull()
+                ?.firstOrNull()
+                ?.id
+
+            val result = forwardSmsToWebhookUseCase(sms, latestLogId)
 
             if (result.isSuccess) {
                 Timber.i("Manual retry successful for SMS ID: $smsId")

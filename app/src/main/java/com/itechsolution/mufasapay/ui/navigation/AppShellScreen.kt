@@ -90,26 +90,26 @@ fun AppShellScreen(
     val destinations = listOf(
         DrawerDestination(
             route = Screen.Dashboard.route,
-            label = "Dashboard",
+            label = "Overview",
             icon = Icons.Default.Home,
-            section = "Workspace"
+            section = "Operations"
         ),
         DrawerDestination(
             route = Screen.SmsHistory.route,
-            label = "SMS History",
+            label = "Transactions",
             icon = Icons.AutoMirrored.Filled.List,
-            section = "Workspace"
+            section = "Operations"
         ),
         DrawerDestination(
             route = Screen.SenderManagement.route,
-            label = "Senders",
+            label = "Senders & Templates",
             icon = Icons.Default.AccountCircle,
             section = "Setup",
             badge = enabledSenderCount.takeIf { it > 0 }?.toString()
         ),
         DrawerDestination(
             route = Screen.WebhookConfig.route,
-            label = "Webhook",
+            label = "Webhook Delivery",
             icon = Icons.Default.Build,
             section = "Setup",
             badge = if (webhookReady) "Ready" else "Off"
@@ -289,9 +289,9 @@ private fun DrawerHeader(
 
             Text(
                 text = if (setupReady) {
-                    "Ready to parse and forward payment events"
+                    "Ready to ingest, sync, and manage payment transactions"
                 } else {
-                    "Complete sender and webhook setup from the drawer"
+                    "Finish setup, then monitor transactions from the operations pages"
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (setupReady) {
@@ -358,10 +358,10 @@ private fun StatusMetric(
 
 private fun routeTitle(route: String?): String {
     return when (route) {
-        Screen.Dashboard.route -> "Operations"
-        Screen.SmsHistory.route -> "SMS History"
-        Screen.SenderManagement.route -> "Sender Setup"
-        Screen.WebhookConfig.route -> "Webhook"
+        Screen.Dashboard.route -> "Operations Overview"
+        Screen.SmsHistory.route -> "Transactions"
+        Screen.SenderManagement.route -> "Senders & Templates"
+        Screen.WebhookConfig.route -> "Webhook Delivery"
         else -> "MufasaPay"
     }
 }

@@ -1,8 +1,12 @@
 package com.itechsolution.mufasapay.ui.screens.history
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -15,6 +19,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -48,6 +54,7 @@ fun SmsHistoryScreen(
     viewModel: SmsHistoryViewModel = koinViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
+    val summary by viewModel.summary.collectAsState()
     val filter by viewModel.filter.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val successMessage by viewModel.successMessage.collectAsState()
@@ -74,7 +81,7 @@ fun SmsHistoryScreen(
         topBar = {
             if (showTopBar) {
                 TopAppBar(
-                    title = { Text("SMS History") },
+                    title = { Text("Transactions") },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background
                     ),
@@ -91,9 +98,9 @@ fun SmsHistoryScreen(
         if (messages.isEmpty()) {
                 EmptyStateView(
                     message = when (filter) {
-                        FilterType.ALL -> "No SMS messages yet. Messages will appear here once received."
-                        FilterType.FORWARDED -> "No forwarded messages."
-                        FilterType.NOT_FORWARDED -> "No pending messages."
+                        FilterType.ALL -> "No transactions yet. Matched SMS transactions will appear here once received."
+                        FilterType.FORWARDED -> "No synced transactions yet."
+                        FilterType.NEEDS_ACTION -> "No transactions currently need attention."
                     },
                     modifier = Modifier.padding(paddingValues)
                 )
@@ -105,6 +112,10 @@ fun SmsHistoryScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    item {
+                        TransactionSummaryCard(summary = summary)
+                    }
+
                     // Filter chips
                     item {
                         LazyRow(
@@ -127,9 +138,9 @@ fun SmsHistoryScreen(
                             }
                             item {
                                 FilterChip(
-                                    selected = filter == FilterType.NOT_FORWARDED,
-                                    onClick = { viewModel.setFilter(FilterType.NOT_FORWARDED) },
-                                    label = { Text("Not Forwarded") }
+                                    selected = filter == FilterType.NEEDS_ACTION,
+                                    onClick = { viewModel.setFilter(FilterType.NEEDS_ACTION) },
+                                    label = { Text("Needs Action") }
                                 )
                             }
                         }
@@ -178,5 +189,78 @@ fun SmsHistoryScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun TransactionSummaryCard(summary: TransactionSummary) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Transactions Overview",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "Track matched SMS transactions, retry failed syncs, and remove stale records from one place.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HistoryMetric(
+                    label = "Matched",
+                    value = summary.total.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                HistoryMetric(
+                    label = "Synced",
+                    value = summary.forwarded.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                HistoryMetric(
+                    label = "Needs Action",
+                    value = summary.needsAction.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
     }
 }
