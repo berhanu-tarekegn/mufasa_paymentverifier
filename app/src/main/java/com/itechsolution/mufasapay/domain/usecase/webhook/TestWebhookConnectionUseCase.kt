@@ -2,7 +2,6 @@ package com.itechsolution.mufasapay.domain.usecase.webhook
 
 import com.itechsolution.mufasapay.BuildConfig
 import com.itechsolution.mufasapay.data.remote.WebhookClientFactory
-import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookData
 import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookPayload
 import com.itechsolution.mufasapay.domain.model.WebhookConfig
 import com.itechsolution.mufasapay.domain.repository.WebhookRepository
@@ -59,12 +58,10 @@ class TestWebhookConnectionUseCase(
 
     private fun buildTestPayload(): SmsWebhookPayload {
         return SmsWebhookPayload(
-            data = SmsWebhookData(
-                sender = "Test Customer",
-                provider = "Test Provider",
-                amount = 123.45,
-                transactionId = "TEST12345"
-            )
+            sender = "Test Customer",
+            provider = "Test Provider",
+            amount = 123.45,
+            transactionId = "TEST12345"
         )
     }
 

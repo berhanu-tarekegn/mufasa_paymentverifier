@@ -150,12 +150,10 @@ Every forwarded SMS is sent as JSON in this shape:
 
 ```json
 {
-  "data": {
-    "sender": "Birhanu",
-    "provider": "CBE Birr",
-    "amount": 1500.0,
-    "transaction_id": "FT26042XNSX4"
-  }
+  "sender": "Birhanu",
+  "provider": "CBE Birr",
+  "amount": 1500.0,
+  "transaction_id": "FT26042XNSX4"
 }
 ```
 

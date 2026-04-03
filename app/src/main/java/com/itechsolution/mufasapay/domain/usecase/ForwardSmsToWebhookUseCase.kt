@@ -3,7 +3,6 @@ package com.itechsolution.mufasapay.domain.usecase
 import android.content.Context
 import com.itechsolution.mufasapay.BuildConfig
 import com.itechsolution.mufasapay.data.remote.WebhookClientFactory
-import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookData
 import com.itechsolution.mufasapay.data.remote.dto.SmsWebhookPayload
 import com.itechsolution.mufasapay.data.worker.SmsForwardWorker
 import com.itechsolution.mufasapay.domain.model.DeliveryLog
@@ -212,12 +211,10 @@ class ForwardSmsToWebhookUseCase(
             ?: sms.sender
 
         return SmsWebhookPayload(
-            data = SmsWebhookData(
-                sender = senderName,
-                provider = provider,
-                amount = amount,
-                transactionId = transactionId
-            )
+            sender = senderName,
+            provider = provider,
+            amount = amount,
+            transactionId = transactionId
         )
     }
 

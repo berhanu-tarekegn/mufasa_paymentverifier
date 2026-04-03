@@ -5,12 +5,6 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class SmsWebhookPayload(
-    @Json(name = "data")
-    val data: SmsWebhookData
-)
-
-@JsonClass(generateAdapter = true)
-data class SmsWebhookData(
     @Json(name = "sender")
     val sender: String,
 
